@@ -1,7 +1,7 @@
 'use client';
 
 import { useStore } from '@/store/useStore';
-import { Search, ShoppingBag, Menu, X, ChevronDown, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, ChevronDown, Heart, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, useRef } from 'react';
@@ -162,6 +162,15 @@ export function Header() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-3">
+              {/* Admin */}
+              <button
+                onClick={() => navigateTo('admin')}
+                className={`p-2 hover:text-gold transition-colors ${currentView === 'admin' ? 'text-gold' : ''}`}
+                aria-label="Admin Panel"
+                title="Admin Panel — Upload & Manage Products"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (

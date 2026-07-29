@@ -9,6 +9,7 @@ import { ShopPage } from '@/components/luxury/ShopPage';
 import { ProductDetailPage } from '@/components/luxury/ProductDetailPage';
 import { CartDrawer } from '@/components/luxury/CartDrawer';
 import { MobileMenu } from '@/components/luxury/MobileMenu';
+import { AdminPanel } from '@/components/luxury/AdminPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from 'sonner';
 
@@ -81,6 +82,7 @@ export default function Page() {
       }
     }
 
+    if (currentView === 'admin') return;
     if (currentView === 'shop' || currentView === 'brand' || currentView === 'category' || currentView === 'home') {
       fetchProducts();
     }
@@ -114,6 +116,8 @@ export default function Page() {
         return <ShopPage />;
       case 'product':
         return <ProductDetailPage />;
+      case 'admin':
+        return <AdminPanel />;
       default:
         return <HomePage />;
     }

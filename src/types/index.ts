@@ -92,4 +92,4 @@ export interface CartItem {
   quantity: number;
 }
 
-export type View = 'home' | 'shop' | 'product' | 'brand' | 'category' | 'search';
+export type View = 'home' | 'shop' | 'product' | 'brand' | 'category' | 'search' | 'admin';
