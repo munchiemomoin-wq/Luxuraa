@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  description String?
+  country     String?
+  foundedYear Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+}
+
+model Category {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  image       String?
+  description String?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  subCategories SubCategory[]
+  products    Product[]
+}
+
+model SubCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  image       String?
+  description String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  products  ProductTag[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  description   String?
+  price         Float
+  compareAtPrice Float?
+  brandId       String
+  brand         Brand             @relation(fields: [brandId], references: [id])
+  categoryId    String
+  category      Category          @relation(fields: [categoryId], references: [id])
+  subCategoryId String?
+  subCategory   SubCategory?      @relation(fields: [subCategoryId], references: [id])
+  featured      Boolean           @default(false)
+  bestseller    Boolean           @default(false)
+  newArrival    Boolean           @default(false)
+  images        String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  variants      ProductVariant[]
+  attributes    ProductAttribute[]
+  tags          ProductTag[]
+
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([featured])
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  sku       String?
+  color     String?
+  size      String?
+  material  String?
+  price     Float?
+  stock     Int      @default(0)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductAttribute {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductTag {
+  productId String
+  tagId     String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
