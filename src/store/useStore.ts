@@ -36,6 +36,7 @@ interface StoreState {
     featured: boolean;
     bestseller: boolean;
     newArrival: boolean;
+    onSale: boolean;
   };
 
   // Cart
@@ -88,6 +89,7 @@ const defaultFilters = {
   featured: false,
   bestseller: false,
   newArrival: false,
+  onSale: false,
 };
 
 export const useStore = create<StoreState>((set, get) => ({

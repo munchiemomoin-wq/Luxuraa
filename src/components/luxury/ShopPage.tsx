@@ -52,6 +52,7 @@ export function ShopPage() {
     filters.featured,
     filters.bestseller,
     filters.newArrival,
+    filters.onSale,
   ].filter(Boolean).length;
 
   const priceRanges = [
@@ -127,6 +128,7 @@ export function ShopPage() {
               <option value="createdAt-asc">Oldest</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
+              <option value="discount-desc">Biggest Discount</option>
               <option value="name-asc">Name: A-Z</option>
               <option value="name-desc">Name: Z-A</option>
             </select>
@@ -174,6 +176,9 @@ export function ShopPage() {
               )}
               {filters.newArrival && (
                 <FilterTag label="New Arrivals" onRemove={() => setFilter('newArrival', false)} />
+              )}
+              {filters.onSale && (
+                <FilterTag label="On Sale" onRemove={() => setFilter('onSale', false)} />
               )}
               {filters.priceMin && filters.priceMax && (
                 <FilterTag
@@ -297,6 +302,7 @@ export function ShopPage() {
                         { label: 'Featured', value: 'featured' },
                         { label: 'Bestsellers', value: 'bestseller' },
                         { label: 'New Arrivals', value: 'newArrival' },
+                        { label: 'On Sale', value: 'onSale' },
                       ].map((item) => (
                         <label key={item.value} className="flex items-center gap-2 cursor-pointer group">
                           <input

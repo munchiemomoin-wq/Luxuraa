@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { Heart, ShoppingBag, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { Heart, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -36,6 +36,8 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       addToCart(product, selectedVariant);
     }
   };
+
+  const rs = '\u20B9';
 
   return (
     <motion.div
@@ -157,13 +159,29 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           </div>
         )}
 
-        {/* Price */}
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm font-medium">₹{product.price.toLocaleString('en-IN')}</span>
-          {hasDiscount && (
-            <span className="text-xs text-warm-gray line-through">
-              ₹{product.compareAtPrice!.toLocaleString('en-IN')}
-            </span>
+        {/* Price - MRP / Seller Price / Discount */}
+        <div className="pt-1">
+          {hasDiscount ? (
+            <div className="space-y-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {rs}{product.price.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[11px] text-warm-gray line-through">
+                  MRP {rs}{product.compareAtPrice!.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-emerald-600 font-medium">
+                  {discount}% off
+                </span>
+                <span className="text-[10px] text-warm-gray">
+                  Save {rs}{(product.compareAtPrice! - product.price).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span className="text-sm font-medium">{rs}{product.price.toLocaleString('en-IN')}</span>
           )}
         </div>
       </div>

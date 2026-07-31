@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const featured = searchParams.get('featured');
     const bestseller = searchParams.get('bestseller');
     const newArrival = searchParams.get('newArrival');
+    const onSale = searchParams.get('onSale');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const page = parseInt(searchParams.get('page') || '1');
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
     if (featured === 'true') where.featured = true;
     if (bestseller === 'true') where.bestseller = true;
     if (newArrival === 'true') where.newArrival = true;
+    if (onSale === 'true') where.compareAtPrice = { gt: 0 };
 
     if (tag) {
       where.tags = {
@@ -52,7 +54,10 @@ export async function GET(request: Request) {
     }
 
     const orderBy: Prisma.ProductOrderByWithRelationInput = {};
-    if (sortBy === 'price') {
+    let sortByDiscount = false;
+    if (sortBy === 'discount') {
+      sortByDiscount = true;
+    } else if (sortBy === 'price') {
       orderBy.price = sortOrder === 'asc' ? 'asc' : 'desc';
     } else if (sortBy === 'name') {
       orderBy.name = sortOrder === 'asc' ? 'asc' : 'desc';
@@ -60,12 +65,33 @@ export async function GET(request: Request) {
       orderBy.createdAt = 'desc';
     }
 
-    const [products, total] = await Promise.all([
-      db.product.findMany({
+    let products;
+    if (sortByDiscount) {
+      // Fetch all matching, sort by computed discount, then paginate in-memory
+      const allProducts = await db.product.findMany({
         where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        include: {
+          brand: { select: { id: true, name: true, slug: true, logo: true } },
+          category: { select: { id: true, name: true, slug: true } },
+          subCategory: { select: { id: true, name: true, slug: true } },
+          variants: { where: { stock: { gt: 0 } } },
+          attributes: true,
+          tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+        },
+      });
+      allProducts.sort((a, b) => {
+        const discA = a.compareAtPrice ? (a.compareAtPrice - a.price) / a.compareAtPrice : 0;
+        const discB = b.compareAtPrice ? (b.compareAtPrice - b.price) / b.compareAtPrice : 0;
+        return sortOrder === 'desc' ? discB - discA : discA - discB;
+      });
+      products = allProducts.slice((page - 1) * limit, page * limit);
+    } else {
+      const [fetched] = await Promise.all([
+        db.product.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * limit,
+          take: limit,
         include: {
           brand: { select: { id: true, name: true, slug: true, logo: true } },
           category: { select: { id: true, name: true, slug: true } },
@@ -79,8 +105,11 @@ export async function GET(request: Request) {
           },
         },
       }),
-      db.product.count({ where }),
-    ]);
+      ]);
+      products = fetched;
+    }
+
+    const total = await db.product.count({ where });
 
     return NextResponse.json({
       products,

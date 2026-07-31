@@ -69,6 +69,7 @@ export default function Page() {
         if (filters.featured) params.set('featured', 'true');
         if (filters.bestseller) params.set('bestseller', 'true');
         if (filters.newArrival) params.set('newArrival', 'true');
+        if (filters.onSale) params.set('onSale', 'true');
 
         const res = await fetch(`/api/products?${params.toString()}`);
         if (res.ok) {
