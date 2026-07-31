@@ -17,11 +17,16 @@ export function Header() {
     toggleCart,
     getCartCount,
     currentView,
+    isAdmin,
+    loginAdmin,
+    logoutAdmin,
   } = useStore();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPwd, setAdminPwd] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const cartCount = getCartCount();
@@ -161,15 +166,61 @@ export function Header() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-3">
-              {/* Admin */}
-              <button
-                onClick={() => navigateTo('admin')}
-                className={`p-2 hover:text-gold transition-colors ${currentView === 'admin' ? 'text-gold' : ''}`}
-                aria-label="Admin Panel"
-                title="Admin Panel — Upload & Manage Products"
-              >
-                <Settings className="h-5 w-5" />
-              </button>
+              {/* Admin - only visible when authenticated */}
+              {isAdmin ? (
+                <button
+                  onClick={() => navigateTo('admin')}
+                  className={`p-2 hover:text-gold transition-colors ${currentView === 'admin' ? 'text-gold' : ''}`}
+                  aria-label="Admin Panel"
+                  title="Admin Panel"
+                >
+                  <Settings className="h-5 w-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAdminPrompt(true)}
+                  className="p-2 hover:text-gold transition-colors opacity-30 hover:opacity-100"
+                  aria-label="Admin"
+                  title="Admin"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              )}
+              {showAdminPrompt && !isAdmin && (
+                <div className="absolute right-0 top-full mt-2 bg-background border shadow-lg rounded-sm p-4 w-64 z-50">
+                  <p className="text-[10px] text-warm-gray tracking-wider uppercase mb-2">Admin Login</p>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const ok = await loginAdmin(adminPwd);
+                      if (ok) {
+                        setShowAdminPrompt(false);
+                        setAdminPwd('');
+                        navigateTo('admin');
+                      }
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="password"
+                      value={adminPwd}
+                      onChange={(e) => setAdminPwd(e.target.value)}
+                      placeholder="Password"
+                      autoFocus
+                      className="flex-1 h-8 px-2 text-xs border bg-background focus:outline-none focus:ring-1 focus:ring-gold/30 rounded-sm"
+                    />
+                    <button type="submit" className="h-8 px-3 bg-charcoal text-white text-xs tracking-wider rounded-sm hover:bg-charcoal/90">
+                      Go
+                    </button>
+                  </form>
+                  <button
+                    onClick={() => { setShowAdminPrompt(false); setAdminPwd(''); }}
+                    className="text-[10px] text-warm-gray hover:text-foreground mt-2 block"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (

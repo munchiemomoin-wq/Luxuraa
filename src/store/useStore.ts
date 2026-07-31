@@ -48,6 +48,9 @@ interface StoreState {
   isLoading: boolean;
   isLoadingProduct: boolean;
 
+  // Auth
+  isAdmin: boolean;
+
   // Actions - Navigation
   navigateTo: (view: View, id?: string) => void;
   setSearchQuery: (query: string) => void;
@@ -75,6 +78,10 @@ interface StoreState {
   toggleMobileMenu: () => void;
   getCartTotal: () => number;
   getCartCount: () => number;
+
+  // Actions - Auth
+  loginAdmin: (password: string) => Promise<boolean>;
+  logoutAdmin: () => void;
 }
 
 const defaultFilters = {
@@ -120,6 +127,9 @@ export const useStore = create<StoreState>((set, get) => ({
   // Loading
   isLoading: false,
   isLoadingProduct: false,
+
+  // Auth - restore from sessionStorage on init
+  isAdmin: typeof window !== 'undefined' && sessionStorage.getItem('luxuraa_admin') === 'true',
 
   // Navigation actions
   navigateTo: (view, id) => {
@@ -225,5 +235,32 @@ export const useStore = create<StoreState>((set, get) => ({
 
   getCartCount: () => {
     return get().cart.reduce((count, item) => count + item.quantity, 0);
+  },
+
+  // Auth actions
+  loginAdmin: async (password) => {
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        set({ isAdmin: true });
+        sessionStorage.setItem('luxuraa_admin', 'true');
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  logoutAdmin: () => {
+    set({ isAdmin: false });
+    sessionStorage.removeItem('luxuraa_admin');
+    // Clear server-side cookie
+    fetch('/api/admin/auth', { method: 'DELETE' }).catch(() => {});
+    get().goHome();
   },
 }));

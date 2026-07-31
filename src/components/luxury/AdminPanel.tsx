@@ -7,7 +7,7 @@ import {
   Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
   Tag, Layers, Settings, ArrowLeft, Check, Upload,
   Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw,
-  Camera, Video, FileImage, XCircle
+  Camera, Video, FileImage, XCircle, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ export function AdminPanel() {
     setCategories,
     setProducts,
     navigateTo,
+    logoutAdmin,
   } = useStore();
 
   // ---- Admin-specific product state (independent of store) ----
@@ -477,6 +478,15 @@ export function AdminPanel() {
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={logoutAdmin}
+                className="tracking-wider uppercase text-xs text-warm-gray hover:text-destructive"
+              >
+                <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                Logout
               </Button>
             </div>
           </div>

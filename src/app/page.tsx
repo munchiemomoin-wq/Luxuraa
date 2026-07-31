@@ -10,6 +10,7 @@ import { ProductDetailPage } from '@/components/luxury/ProductDetailPage';
 import { CartDrawer } from '@/components/luxury/CartDrawer';
 import { MobileMenu } from '@/components/luxury/MobileMenu';
 import { AdminPanel } from '@/components/luxury/AdminPanel';
+import { AdminLogin } from '@/components/luxury/AdminLogin';
 import { WhatsAppButton } from '@/components/luxury/WhatsAppButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from 'sonner';
@@ -26,6 +27,7 @@ export default function Page() {
     setCategories,
     setProducts,
     setLoading,
+    isAdmin,
   } = useStore();
 
   // Initial data fetch
@@ -119,7 +121,7 @@ export default function Page() {
       case 'product':
         return <ProductDetailPage />;
       case 'admin':
-        return <AdminPanel />;
+        return isAdmin ? <AdminPanel /> : <AdminLogin />;
       default:
         return <HomePage />;
     }
