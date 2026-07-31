@@ -18,7 +18,7 @@ export function MobileMenu() {
       <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-background overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg tracking-[0.2em] uppercase font-light">
-            <span className="font-medium">Maison</span> <span className="text-gradient-gold">Luxe</span>
+            <span className="text-gradient-gold font-medium">Luxuraa</span>
           </h2>
           <button onClick={toggleMobileMenu} className="p-2">
             <X className="h-5 w-5" />

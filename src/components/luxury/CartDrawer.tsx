@@ -108,7 +108,7 @@ export function CartDrawer() {
                             </button>
                           </div>
                           <span className="text-sm font-medium">
-                            ${(item.variant.price || item.product.price).toLocaleString()}
+                            ₹{(item.variant.price || item.product.price).toLocaleString('en-IN')}
                           </span>
                         </div>
                       </div>
@@ -129,7 +129,7 @@ export function CartDrawer() {
               <div className="border-t p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-warm-gray uppercase tracking-wider">Subtotal</span>
-                  <span className="text-lg font-medium">${total.toLocaleString()}</span>
+                  <span className="text-lg font-medium">₹{total.toLocaleString('en-IN')}</span>
                 </div>
                 <p className="text-xs text-warm-gray">Shipping calculated at checkout</p>
                 <Button className="w-full tracking-wider uppercase text-sm h-12 bg-charcoal hover:bg-charcoal/90">

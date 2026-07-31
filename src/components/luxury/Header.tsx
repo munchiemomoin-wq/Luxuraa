@@ -52,7 +52,7 @@ export function Header() {
     <>
       {/* Top Bar */}
       <div className="bg-charcoal text-white/80 text-xs tracking-widest uppercase text-center py-2 px-4">
-        Complimentary Shipping on Orders Over $1,000 — Authentic Luxury Guaranteed
+        Complimentary Shipping on Orders Over ₹1,00,000 — Authentic Luxury Guaranteed
       </div>
 
       {/* Main Header */}
@@ -155,8 +155,7 @@ export function Header() {
               className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
             >
               <h1 className="text-xl lg:text-2xl font-light tracking-[0.3em] uppercase">
-                <span className="font-medium">Maison</span>{' '}
-                <span className="text-gradient-gold">Luxe</span>
+                <span className="text-gradient-gold font-medium">Luxuraa</span>
               </h1>
             </button>
 

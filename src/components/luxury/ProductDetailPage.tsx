@@ -211,11 +211,11 @@ export function ProductDetailPage() {
 
             {/* Price */}
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-medium">${productDetail.price.toLocaleString()}</span>
+              <span className="text-2xl font-medium">₹{productDetail.price.toLocaleString('en-IN')}</span>
               {hasDiscount && (
                 <>
                   <span className="text-lg text-warm-gray line-through">
-                    ${productDetail.compareAtPrice!.toLocaleString()}
+                    ₹{productDetail.compareAtPrice!.toLocaleString('en-IN')}
                   </span>
                   <Badge className="bg-destructive text-white text-xs border-0 px-2 py-0.5 rounded-none">
                     -{discount}%
@@ -329,7 +329,7 @@ export function ProductDetailPage() {
                 className="flex-1 tracking-[0.15em] uppercase text-xs h-12 bg-charcoal hover:bg-charcoal/90 rounded-none"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
-                Add to Bag — ${(selectedVariant?.price || productDetail.price).toLocaleString()}
+                Add to Bag — ₹{(selectedVariant?.price || productDetail.price).toLocaleString('en-IN')}
               </Button>
             </div>
 

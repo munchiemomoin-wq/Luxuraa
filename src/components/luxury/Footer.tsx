@@ -17,7 +17,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="text-center sm:text-left">
-              <h3 className="text-lg font-light tracking-wider">Join the <span className="text-gradient-gold">Maison Luxe</span></h3>
+              <h3 className="text-lg font-light tracking-wider">Join <span className="text-gradient-gold">Luxuraa</span></h3>
               <p className="text-white/50 text-xs mt-1 tracking-wider">
                 Subscribe for exclusive access to new arrivals and private sales
               </p>
@@ -43,8 +43,7 @@ export function Footer() {
           <div className="col-span-2 sm:col-span-2 lg:col-span-1">
             <button onClick={goHome} className="inline-block">
               <h2 className="text-xl font-light tracking-[0.3em] uppercase mb-4">
-                <span className="font-medium">Maison</span>{' '}
-                <span className="text-gradient-gold">Luxe</span>
+                <span className="text-gradient-gold font-medium">Luxuraa</span>
               </h2>
             </button>
             <p className="text-white/40 text-xs leading-relaxed mb-6 max-w-xs">
@@ -133,7 +132,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-white/30 text-xs tracking-wider">
-              &copy; {new Date().getFullYear()} Maison Luxe. All rights reserved.
+              &copy; {new Date().getFullYear()} Luxuraa. All rights reserved. | luxuraa.in
             </p>
             <div className="flex items-center gap-6">
               {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (

@@ -159,10 +159,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         {/* Price */}
         <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm font-medium">${product.price.toLocaleString()}</span>
+          <span className="text-sm font-medium">₹{product.price.toLocaleString('en-IN')}</span>
           {hasDiscount && (
             <span className="text-xs text-warm-gray line-through">
-              ${product.compareAtPrice!.toLocaleString()}
+              ₹{product.compareAtPrice!.toLocaleString('en-IN')}
             </span>
           )}
         </div>

@@ -533,7 +533,7 @@ export function AdminPanel() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Price ($) *</label>
+                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Price (₹) *</label>
                         <Input
                           type="number" step="0.01"
                           value={form.price}
@@ -542,7 +542,7 @@ export function AdminPanel() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Compare at Price ($)</label>
+                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Compare at Price (₹)</label>
                         <Input
                           type="number" step="0.01"
                           value={form.compareAtPrice}
@@ -708,7 +708,7 @@ export function AdminPanel() {
                               <Input value={variant.color} onChange={(e) => updateVariant(idx, 'color', e.target.value)} placeholder="Color" className="h-8 text-xs" />
                               <Input value={variant.size} onChange={(e) => updateVariant(idx, 'size', e.target.value)} placeholder="Size" className="h-8 text-xs" />
                               <Input value={variant.material} onChange={(e) => updateVariant(idx, 'material', e.target.value)} placeholder="Material" className="h-8 text-xs" />
-                              <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(idx, 'price', e.target.value)} placeholder="Price ($)" className="h-8 text-xs" />
+                              <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(idx, 'price', e.target.value)} placeholder="Price (₹)" className="h-8 text-xs" />
                               <Input type="number" value={variant.stock} onChange={(e) => updateVariant(idx, 'stock', e.target.value)} placeholder="Stock" className="h-8 text-xs" />
                               <Input value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} placeholder="Label" className="h-8 text-xs" />
                             </div>
@@ -863,9 +863,9 @@ export function AdminPanel() {
                             <span className="text-xs text-warm-gray">{product.category.name}</span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="text-xs font-medium">${product.price.toLocaleString()}</span>
+                            <span className="text-xs font-medium">₹{product.price.toLocaleString('en-IN')}</span>
                             {product.compareAtPrice && (
-                              <span className="text-[10px] text-warm-gray line-through ml-1">${product.compareAtPrice.toLocaleString()}</span>
+                              <span className="text-[10px] text-warm-gray line-through ml-1">₹{product.compareAtPrice.toLocaleString('en-IN')}</span>
                             )}
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">

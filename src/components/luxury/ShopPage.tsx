@@ -55,11 +55,11 @@ export function ShopPage() {
   ].filter(Boolean).length;
 
   const priceRanges = [
-    { label: 'Under $500', min: null, max: '500' },
-    { label: '$500 - $1,000', min: '500', max: '1000' },
-    { label: '$1,000 - $3,000', min: '1000', max: '3000' },
-    { label: '$3,000 - $5,000', min: '3000', max: '5000' },
-    { label: '$5,000+', min: '5000', max: null },
+    { label: 'Under ₹50,000', min: null, max: '50000' },
+    { label: '₹50K - ₹1L', min: '50000', max: '100000' },
+    { label: '₹1L - ₹3L', min: '100000', max: '300000' },
+    { label: '₹3L - ₹5L', min: '300000', max: '500000' },
+    { label: '₹5L+', min: '500000', max: null },
   ];
 
   return (
@@ -177,7 +177,7 @@ export function ShopPage() {
               )}
               {filters.priceMin && filters.priceMax && (
                 <FilterTag
-                  label={`$${filters.priceMin} - $${filters.priceMax}`}
+                  label={`₹${Number(filters.priceMin).toLocaleString('en-IN')} - ₹${Number(filters.priceMax).toLocaleString('en-IN')}`}
                   onRemove={() => {
                     setFilter('priceMin', null);
                     setFilter('priceMax', null);

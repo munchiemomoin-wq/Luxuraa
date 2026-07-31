@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MAISON LUXE — Premium Luxury Fashion & Accessories",
-  description: "Discover authentic luxury products from the world's most prestigious fashion houses. Gucci, Louis Vuitton, Chanel, Hermès, Prada, Dior and more.",
+  title: "Luxuraa — Premium Luxury Fashion & Accessories",
+  description: "Discover authentic luxury products from the world's most prestigious fashion houses. Gucci, Louis Vuitton, Chanel, Hermès, Prada, Dior and more. Shop at luxuraa.in",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
