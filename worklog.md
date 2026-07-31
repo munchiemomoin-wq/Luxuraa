@@ -43,3 +43,21 @@ Stage Summary:
 - Homepage shows Offer of the Day banner (highest discount product)
 - Product cards show MRP / Seller Price / % discount / savings amount
 - Files changed: useStore.ts, products/route.ts, page.tsx, ShopPage.tsx, HomePage.tsx, ProductCard.tsx
+
+---
+Task ID: 3
+Agent: Main
+Task: Add WhatsApp floating chat button for customer-to-admin communication (9052681374)
+
+Work Log:
+- Created `src/components/luxury/WhatsAppButton.tsx` - floating WhatsApp chat widget
+- Component features: WhatsApp SVG icon, green FAB with ping animation, expandable chat popup with header/body/CTA
+- Opens `wa.me/919052681374` with pre-filled greeting message
+- Shows tooltip "Need help? Chat with us!" that auto-hides after 5 seconds
+- Added component to `src/app/page.tsx` (imported and rendered after CartDrawer)
+- Build passes with 0 errors
+
+Stage Summary:
+- WhatsApp button: fixed bottom-right, green FAB with WhatsApp icon, clickable popup, opens WhatsApp chat to +91 9052681374
+- Files created: src/components/luxury/WhatsAppButton.tsx
+- Files changed: src/app/page.tsx

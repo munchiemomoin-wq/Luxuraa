@@ -10,6 +10,7 @@ import { ProductDetailPage } from '@/components/luxury/ProductDetailPage';
 import { CartDrawer } from '@/components/luxury/CartDrawer';
 import { MobileMenu } from '@/components/luxury/MobileMenu';
 import { AdminPanel } from '@/components/luxury/AdminPanel';
+import { WhatsAppButton } from '@/components/luxury/WhatsAppButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from 'sonner';
 
@@ -131,6 +132,7 @@ export default function Page() {
       <main className="flex-1">{renderView()}</main>
       <Footer />
       <CartDrawer />
+      <WhatsAppButton />
       <Toaster position="top-right" richColors />
     </div>
   );
