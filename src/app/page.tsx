@@ -30,6 +30,13 @@ export default function Page() {
     isAdmin,
   } = useStore();
 
+  // Restore admin auth from sessionStorage after hydration (avoids mismatch)
+  useEffect(() => {
+    if (sessionStorage.getItem('luxuraa_admin') === 'true') {
+      useStore.setState({ isAdmin: true });
+    }
+  }, []);
+
   // Initial data fetch
   useEffect(() => {
     async function fetchData() {

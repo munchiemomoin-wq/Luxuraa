@@ -128,8 +128,8 @@ export const useStore = create<StoreState>((set, get) => ({
   isLoading: false,
   isLoadingProduct: false,
 
-  // Auth - restore from sessionStorage on init
-  isAdmin: typeof window !== 'undefined' && sessionStorage.getItem('luxuraa_admin') === 'true',
+  // Auth - always false on server, restored via useEffect in page.tsx to avoid hydration mismatch
+  isAdmin: false,
 
   // Navigation actions
   navigateTo: (view, id) => {
