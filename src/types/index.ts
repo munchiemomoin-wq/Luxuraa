@@ -79,6 +79,7 @@ export interface Product {
   bestseller: boolean;
   newArrival: boolean;
   images: string;
+  videoUrl: string | null;
   variants: ProductVariant[];
   attributes: ProductAttribute[];
   tags: ProductTag[];

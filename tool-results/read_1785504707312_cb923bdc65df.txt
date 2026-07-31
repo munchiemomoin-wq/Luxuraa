@@ -1,0 +1,1029 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useEffect, useCallback, useRef } from 'react';
+     4→     4→import { useStore } from '@/store/useStore';
+     5→     5→import type { Product } from '@/types';
+     6→     6→import {
+     7→     7→  Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
+     8→     8→  ImageIcon, Tag, Layers, Settings, ArrowLeft, Check, Upload,
+     9→     9→  Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw
+    10→    10→} from 'lucide-react';
+    11→    11→import { Button } from '@/components/ui/button';
+    12→    12→import { Input } from '@/components/ui/input';
+    13→    13→import { Textarea } from '@/components/ui/textarea';
+    14→    14→import { Badge } from '@/components/ui/badge';
+    15→    15→import { Separator } from '@/components/ui/separator';
+    16→    16→import { toast } from 'sonner';
+    17→    17→import { motion, AnimatePresence } from 'framer-motion';
+    18→    18→
+    19→    19→interface VariantRow {
+    20→    20→  name: string;
+    21→    21→  color: string;
+    22→    22→  size: string;
+    23→    23→  material: string;
+    24→    24→  price: string;
+    25→    25→  stock: string;
+    26→    26→}
+    27→    27→
+    28→    28→interface AttributeRow {
+    29→    29→  name: string;
+    30→    30→  value: string;
+    31→    31→}
+    32→    32→
+    33→    33→const ADMIN_PAGE_SIZE = 50;
+    34→    34→
+    35→    35→export function AdminPanel() {
+    36→    36→  const {
+    37→    37→    brands,
+    38→    38→    categories,
+    39→    39→    tags,
+    40→    40→    setBrands,
+    41→    41→    setCategories,
+    42→    42→    setProducts,
+    43→    43→    navigateTo,
+    44→    44→  } = useStore();
+    45→    45→
+    46→    46→  // ---- Admin-specific product state (independent of store) ----
+    47→    47→  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+    48→    48→  const [adminTotal, setAdminTotal] = useState(0);
+    49→    49→  const [adminPage, setAdminPage] = useState(1);
+    50→    50→  const [isLoadingAdmin, setIsLoadingAdmin] = useState(false);
+    51→    51→  const [adminSearch, setAdminSearch] = useState('');
+    52→    52→
+    53→    53→  const fetchAdminProducts = useCallback(async (page: number, append: boolean = false, search?: string) => {
+    54→    54→    setIsLoadingAdmin(true);
+    55→    55→    try {
+    56→    56→      const params = new URLSearchParams({
+    57→    57→        page: String(page),
+    58→    58→        limit: String(ADMIN_PAGE_SIZE),
+    59→    59→        sortBy: 'createdAt',
+    60→    60→        sortOrder: 'desc',
+    61→    61→      });
+    62→    62→      if (search) params.set('search', search);
+    63→    63→
+    64→    64→      const res = await fetch(`/api/products?${params.toString()}`);
+    65→    65→      if (res.ok) {
+    66→    66→        const data = await res.json();
+    67→    67→        setAdminProducts((prev) => append ? [...prev, ...data.products] : data.products);
+    68→    68→        setAdminTotal(data.pagination.total);
+    69→    69→      }
+    70→    70→    } catch {
+    71→    71→      // silent
+    72→    72→    } finally {
+    73→    73→      setIsLoadingAdmin(false);
+    74→    74→    }
+    75→    75→  }, []);
+    76→    76→
+    77→    77→  // Initial load + when search changes
+    78→    78→  useEffect(() => {
+    79→    79→    setAdminPage(1);
+    80→    80→    fetchAdminProducts(1, false, adminSearch || undefined);
+    81→    81→  }, [adminSearch, fetchAdminProducts]);
+    82→    82→
+    83→    83→  // Also refresh store products so the front-end stays in sync
+    84→    84→  const refreshStoreProducts = async () => {
+    85→    85→    try {
+    86→    86→      const res = await fetch('/api/products?limit=12&sortBy=createdAt&sortOrder=desc');
+    87→    87→      if (res.ok) {
+    88→    88→        const data = await res.json();
+    89→    89→        setProducts(data.products, data.pagination);
+    90→    90→      }
+    91→    91→    } catch { /* silent */ }
+    92→    92→  };
+    93→    93→
+    94→    94→  const loadMore = () => {
+    95→    95→    const nextPage = adminPage + 1;
+    96→    96→    setAdminPage(nextPage);
+    97→    97→    fetchAdminProducts(nextPage, true, adminSearch || undefined);
+    98→    98→  };
+    99→    99→
+   100→   100→  // Filtered products shown in table
+   101→   101→  const displayedProducts = adminSearch
+   102→   102→    ? adminProducts
+   103→   103→    : adminProducts;
+   104→   104→
+   105→   105→  // ---- Tabs ----
+   106→   106→  const [activeTab, setActiveTab] = useState<'products' | 'brands' | 'categories'>('products');
+   107→   107→
+   108→   108→  // ---- Product form ----
+   109→   109→  const [showForm, setShowForm] = useState(false);
+   110→   110→  const [editingId, setEditingId] = useState<string | null>(null);
+   111→   111→  const [isSubmitting, setIsSubmitting] = useState(false);
+   112→   112→  const [imageInput, setImageInput] = useState('');
+   113→   113→  const [showBulkImages, setShowBulkImages] = useState(false);
+   114→   114→  const [bulkImageText, setBulkImageText] = useState('');
+   115→   115→  const formRef = useRef<HTMLDivElement>(null);
+   116→   116→
+   117→   117→  const [form, setForm] = useState({
+   118→   118→    name: '',
+   119→   119→    description: '',
+   120→   120→    price: '',
+   121→   121→    compareAtPrice: '',
+   122→   122→    brandId: '',
+   123→   123→    categoryId: '',
+   124→   124→    subCategoryId: '',
+   125→   125→    featured: false,
+   126→   126→    bestseller: false,
+   127→   127→    newArrival: false,
+   128→   128→    images: [] as string[],
+   129→   129→    variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }] as VariantRow[],
+   130→   130→    attributes: [{ name: '', value: '' }] as AttributeRow[],
+   131→   131→    selectedTags: [] as string[],
+   132→   132→  });
+   133→   133→
+   134→   134→  const resetForm = () => {
+   135→   135→    setForm({
+   136→   136→      name: '',
+   137→   137→      description: '',
+   138→   138→      price: '',
+   139→   139→      compareAtPrice: '',
+   140→   140→      brandId: '',
+   141→   141→      categoryId: '',
+   142→   142→      subCategoryId: '',
+   143→   143→      featured: false,
+   144→   144→      bestseller: false,
+   145→   145→      newArrival: false,
+   146→   146→      images: [],
+   147→   147→      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+   148→   148→      attributes: [{ name: '', value: '' }],
+   149→   149→      selectedTags: [],
+   150→   150→    });
+   151→   151→    setImageInput('');
+   152→   152→    setBulkImageText('');
+   153→   153→    setShowBulkImages(false);
+   154→   154→    setEditingId(null);
+   155→   155→    setShowForm(false);
+   156→   156→  };
+   157→   157→
+   158→   158→  const keepFormForNext = () => {
+   159→   159→    const currentBrand = form.brandId;
+   160→   160→    const currentCategory = form.categoryId;
+   161→   161→    const currentSubCategory = form.subCategoryId;
+   162→   162→    const currentTags = form.selectedTags;
+   163→   163→    const currentAttributes = form.attributes;
+   164→   164→    setForm({
+   165→   165→      name: '',
+   166→   166→      description: '',
+   167→   167→      price: '',
+   168→   168→      compareAtPrice: '',
+   169→   169→      brandId: currentBrand,
+   170→   170→      categoryId: currentCategory,
+   171→   171→      subCategoryId: currentSubCategory,
+   172→   172→      featured: false,
+   173→   173→      bestseller: false,
+   174→   174→      newArrival: false,
+   175→   175→      images: [],
+   176→   176→      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+   177→   177→      attributes: currentAttributes.filter(a => a.name.trim()),
+   178→   178→      selectedTags: currentTags,
+   179→   179→    });
+   180→   180→    setImageInput('');
+   181→   181→    setBulkImageText('');
+   182→   182→    setEditingId(null);
+   183→   183→    // Keep form open for rapid entry
+   184→   184→  };
+   185→   185→
+   186→   186→  const handleEditProduct = (product: any) => {
+   187→   187→    setForm({
+   188→   188→      name: product.name,
+   189→   189→      description: product.description || '',
+   190→   190→      price: String(product.price),
+   191→   191→      compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+   192→   192→      brandId: product.brandId,
+   193→   193→      categoryId: product.categoryId,
+   194→   194→      subCategoryId: product.subCategoryId || '',
+   195→   195→      featured: product.featured,
+   196→   196→      bestseller: product.bestseller,
+   197→   197→      newArrival: product.newArrival,
+   198→   198→      images: (() => { try { return JSON.parse(product.images); } catch { return []; } })(),
+   199→   199→      variants: product.variants.length > 0
+   200→   200→        ? product.variants.map((v: any) => ({
+   201→   201→            name: v.name,
+   202→   202→            color: v.color || '',
+   203→   203→            size: v.size || '',
+   204→   204→            material: v.material || '',
+   205→   205→            price: v.price ? String(v.price) : '',
+   206→   206→            stock: String(v.stock),
+   207→   207→          }))
+   208→   208→        : [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+   209→   209→      attributes: product.attributes.length > 0
+   210→   210→        ? product.attributes.map((a: any) => ({ name: a.name, value: a.value }))
+   211→   211→        : [{ name: '', value: '' }],
+   212→   212→      selectedTags: product.tags.map((t: any) => t.tagId),
+   213→   213→    });
+   214→   214→    setEditingId(product.id);
+   215→   215→    setShowForm(true);
+   216→   216→    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+   217→   217→  };
+   218→   218→
+   219→   219→  const handleDuplicateProduct = async (product: any) => {
+   220→   220→    try {
+   221→   221→      const payload = {
+   222→   222→        name: `${product.name} (Copy)`,
+   223→   223→        description: product.description,
+   224→   224→        price: String(product.price),
+   225→   225→        compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+   226→   226→        brandId: product.brandId,
+   227→   227→        categoryId: product.categoryId,
+   228→   228→        subCategoryId: product.subCategoryId,
+   229→   229→        featured: false,
+   230→   230→        bestseller: false,
+   231→   231→        newArrival: false,
+   232→   232→        images: product.images,
+   233→   233→        variants: product.variants.map((v: any) => ({
+   234→   234→          name: v.name,
+   235→   235→          color: v.color || '',
+   236→   236→          size: v.size || '',
+   237→   237→          material: v.material || '',
+   238→   238→          price: v.price ? String(v.price) : '',
+   239→   239→          stock: String(v.stock),
+   240→   240→        })),
+   241→   241→        attributes: product.attributes.map((a: any) => ({ name: a.name, value: a.value })),
+   242→   242→        tags: product.tags.map((t: any) => t.tagId),
+   243→   243→      };
+   244→   244→
+   245→   245→      const res = await fetch('/api/admin/products', {
+   246→   246→        method: 'POST',
+   247→   247→        headers: { 'Content-Type': 'application/json' },
+   248→   248→        body: JSON.stringify(payload),
+   249→   249→      });
+   250→   250→      if (res.ok) {
+   251→   251→        toast.success(`Duplicated "${product.name}"`);
+   252→   252→        fetchAdminProducts(1, false, adminSearch || undefined);
+   253→   253→        refreshStoreProducts();
+   254→   254→      } else {
+   255→   255→        toast.error('Failed to duplicate');
+   256→   256→      }
+   257→   257→    } catch {
+   258→   258→      toast.error('Error duplicating product');
+   259→   259→    }
+   260→   260→  };
+   261→   261→
+   262→   262→  const handleDeleteProduct = async (id: string) => {
+   263→   263→    if (!confirm('Are you sure you want to delete this product?')) return;
+   264→   264→    try {
+   265→   265→      const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE' });
+   266→   266→      if (res.ok) {
+   267→   267→        toast.success('Product deleted successfully');
+   268→   268→        fetchAdminProducts(1, false, adminSearch || undefined);
+   269→   269→        refreshStoreProducts();
+   270→   270→      } else {
+   271→   271→        toast.error('Failed to delete product');
+   272→   272→      }
+   273→   273→    } catch {
+   274→   274→      toast.error('Error deleting product');
+   275→   275→    }
+   276→   276→  };
+   277→   277→
+   278→   278→  const handleSubmit = async (andAddAnother: boolean = false) => {
+   279→   279→    if (!form.name.trim()) { toast.error('Product name is required'); return; }
+   280→   280→    if (!form.price) { toast.error('Price is required'); return; }
+   281→   281→    if (!form.brandId) { toast.error('Please select a brand'); return; }
+   282→   282→    if (!form.categoryId) { toast.error('Please select a category'); return; }
+   283→   283→    if (form.images.length === 0) { toast.error('At least one image URL is required'); return; }
+   284→   284→
+   285→   285→    setIsSubmitting(true);
+   286→   286→    try {
+   287→   287→      const payload: any = { ...form, tags: form.selectedTags };
+   288→   288→      const method = editingId ? 'PUT' : 'POST';
+   289→   289→      if (editingId) payload.id = editingId;
+   290→   290→
+   291→   291→      const res = await fetch('/api/admin/products', {
+   292→   292→        method,
+   293→   293→        headers: { 'Content-Type': 'application/json' },
+   294→   294→        body: JSON.stringify(payload),
+   295→   295→      });
+   296→   296→
+   297→   297→      if (res.ok) {
+   298→   298→        toast.success(editingId ? 'Product updated!' : 'Product created!');
+   299→   299→        if (andAddAnother) {
+   300→   300→          keepFormForNext();
+   301→   301→        } else {
+   302→   302→          resetForm();
+   303→   303→        }
+   304→   304→        fetchAdminProducts(1, false, adminSearch || undefined);
+   305→   305→        refreshStoreProducts();
+   306→   306→      } else {
+   307→   307→        const err = await res.json();
+   308→   308→        toast.error(err.error || 'Failed to save product');
+   309→   309→      }
+   310→   310→    } catch {
+   311→   311→      toast.error('Error saving product');
+   312→   312→    } finally {
+   313→   313→      setIsSubmitting(false);
+   314→   314→    }
+   315→   315→  };
+   316→   316→
+   317→   317→  // ---- Image management ----
+   318→   318→  const addImage = () => {
+   319→   319→    if (imageInput.trim()) {
+   320→   320→      setForm((prev) => ({ ...prev, images: [...prev.images, imageInput.trim()] }));
+   321→   321→      setImageInput('');
+   322→   322→    }
+   323→   323→  };
+   324→   324→
+   325→   325→  const addBulkImages = () => {
+   326→   326→    const urls = bulkImageText
+   327→   327→      .split(/[\n,]+/)
+   328→   328→      .map((u) => u.trim())
+   329→   329→      .filter((u) => u.length > 0 && u.startsWith('http'));
+   330→   330→    if (urls.length > 0) {
+   331→   331→      setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
+   332→   332→      setBulkImageText('');
+   333→   333→      setShowBulkImages(false);
+   334→   334→      toast.success(`Added ${urls.length} image(s)`);
+   335→   335→    } else {
+   336→   336→      toast.error('No valid URLs found. Paste one URL per line.');
+   337→   337→    }
+   338→   338→  };
+   339→   339→
+   340→   340→  const removeImage = (index: number) => {
+   341→   341→    setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+   342→   342→  };
+   343→   343→
+   344→   344→  // ---- Variant management ----
+   345→   345→  const addVariant = () => {
+   346→   346→    setForm((prev) => ({
+   347→   347→      ...prev,
+   348→   348→      variants: [...prev.variants, { name: '', color: '', size: '', material: '', price: '', stock: '10' }],
+   349→   349→    }));
+   350→   350→  };
+   351→   351→  const removeVariant = (index: number) => {
+   352→   352→    setForm((prev) => ({ ...prev, variants: prev.variants.filter((_, i) => i !== index) }));
+   353→   353→  };
+   354→   354→  const updateVariant = (index: number, field: keyof VariantRow, value: string) => {
+   355→   355→    setForm((prev) => ({
+   356→   356→      ...prev,
+   357→   357→      variants: prev.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+   358→   358→    }));
+   359→   359→  };
+   360→   360→
+   361→   361→  // ---- Attribute management ----
+   362→   362→  const addAttribute = () => {
+   363→   363→    setForm((prev) => ({ ...prev, attributes: [...prev.attributes, { name: '', value: '' }] }));
+   364→   364→  };
+   365→   365→  const removeAttribute = (index: number) => {
+   366→   366→    setForm((prev) => ({ ...prev, attributes: prev.attributes.filter((_, i) => i !== index) }));
+   367→   367→  };
+   368→   368→  const updateAttribute = (index: number, field: keyof AttributeRow, value: string) => {
+   369→   369→    setForm((prev) => ({
+   370→   370→      ...prev,
+   371→   371→      attributes: prev.attributes.map((a, i) => (i === index ? { ...a, [field]: value } : a)),
+   372→   372→    }));
+   373→   373→  };
+   374→   374→
+   375→   375→  // ---- Tag toggle ----
+   376→   376→  const toggleTag = (tagId: string) => {
+   377→   377→    setForm((prev) => ({
+   378→   378→      ...prev,
+   379→   379→      selectedTags: prev.selectedTags.includes(tagId)
+   380→   380→        ? prev.selectedTags.filter((t) => t !== tagId)
+   381→   381→        : [...prev.selectedTags, tagId],
+   382→   382→    }));
+   383→   383→  };
+   384→   384→
+   385→   385→  const selectedCategory = categories.find((c) => c.id === form.categoryId);
+   386→   386→  const subCategories = selectedCategory?.subCategories || [];
+   387→   387→
+   388→   388→  // ---- Brand form ----
+   389→   389→  const [brandForm, setBrandForm] = useState({ name: '', description: '', country: '', foundedYear: '' });
+   390→   390→  const [showBrandForm, setShowBrandForm] = useState(false);
+   391→   391→
+   392→   392→  const handleCreateBrand = async () => {
+   393→   393→    if (!brandForm.name.trim()) { toast.error('Brand name is required'); return; }
+   394→   394→    try {
+   395→   395→      const res = await fetch('/api/admin/brands', {
+   396→   396→        method: 'POST',
+   397→   397→        headers: { 'Content-Type': 'application/json' },
+   398→   398→        body: JSON.stringify(brandForm),
+   399→   399→      });
+   400→   400→      if (res.ok) {
+   401→   401→        toast.success('Brand created successfully');
+   402→   402→        const newBrands = await (await fetch('/api/brands')).json();
+   403→   403→        setBrands(newBrands);
+   404→   404→        setBrandForm({ name: '', description: '', country: '', foundedYear: '' });
+   405→   405→        setShowBrandForm(false);
+   406→   406→      }
+   407→   407→    } catch { toast.error('Error creating brand'); }
+   408→   408→  };
+   409→   409→
+   410→   410→  // ---- Category form ----
+   411→   411→  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+   412→   412→  const [showCategoryForm, setShowCategoryForm] = useState(false);
+   413→   413→
+   414→   414→  const handleCreateCategory = async () => {
+   415→   415→    if (!categoryForm.name.trim()) { toast.error('Category name is required'); return; }
+   416→   416→    try {
+   417→   417→      const res = await fetch('/api/admin/categories', {
+   418→   418→        method: 'POST',
+   419→   419→        headers: { 'Content-Type': 'application/json' },
+   420→   420→        body: JSON.stringify(categoryForm),
+   421→   421→      });
+   422→   422→      if (res.ok) {
+   423→   423→        toast.success('Category created successfully');
+   424→   424→        const newCategories = await (await fetch('/api/categories')).json();
+   425→   425→        setCategories(newCategories);
+   426→   426→        setCategoryForm({ name: '', description: '' });
+   427→   427→        setShowCategoryForm(false);
+   428→   428→      }
+   429→   429→    } catch { toast.error('Error creating category'); }
+   430→   430→  };
+   431→   431→
+   432→   432→  // ============================================================
+   433→   433→  // RENDER
+   434→   434→  // ============================================================
+   435→   435→  return (
+   436→   436→    <div className="min-h-screen bg-background">
+   437→   437→      {/* Header */}
+   438→   438→      <div className="bg-cream border-b">
+   439→   439→        <div className="max-w-7xl mx-auto px-4 py-8">
+   440→   440→          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+   441→   441→            <div className="flex items-center gap-4">
+   442→   442→              <button onClick={() => navigateTo('home')} className="p-2 hover:text-gold transition-colors">
+   443→   443→                <ArrowLeft className="h-5 w-5" />
+   444→   444→              </button>
+   445→   445→              <div>
+   446→   446→                <h1 className="text-2xl font-light tracking-wide flex items-center gap-3">
+   447→   447→                  <Settings className="h-5 w-5 text-gold" />
+   448→   448→                  Admin Panel
+   449→   449→                </h1>
+   450→   450→                <p className="text-xs text-warm-gray mt-1">Manage products, brands, and categories</p>
+   451→   451→              </div>
+   452→   452→            </div>
+   453→   453→            <div className="flex items-center gap-2">
+   454→   454→              <Button
+   455→   455→                onClick={() => { resetForm(); setShowForm(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+   456→   456→                className="tracking-[0.15em] uppercase text-xs bg-gold text-white hover:bg-gold-dark"
+   457→   457→              >
+   458→   458→                <Plus className="mr-2 h-4 w-4" />
+   459→   459→                Add Product
+   460→   460→              </Button>
+   461→   461→            </div>
+   462→   462→          </div>
+   463→   463→        </div>
+   464→   464→      </div>
+   465→   465→
+   466→   466→      <div className="max-w-7xl mx-auto px-4 py-6">
+   467→   467→        {/* Tabs */}
+   468→   468→        <div className="flex gap-1 border-b mb-6">
+   469→   469→          {([
+   470→   470→            { key: 'products' as const, label: 'Products', icon: Package, count: adminTotal },
+   471→   471→            { key: 'brands' as const, label: 'Brands', icon: Sparkles, count: brands.length },
+   472→   472→            { key: 'categories' as const, label: 'Categories', icon: Layers, count: categories.length },
+   473→   473→          ]).map((tab) => (
+   474→   474→            <button
+   475→   475→              key={tab.key}
+   476→   476→              onClick={() => setActiveTab(tab.key)}
+   477→   477→              className={`flex items-center gap-2 px-4 py-3 text-xs tracking-[0.15em] uppercase border-b-2 transition-colors ${
+   478→   478→                activeTab === tab.key
+   479→   479→                  ? 'border-gold text-foreground font-medium'
+   480→   480→                  : 'border-transparent text-warm-gray hover:text-foreground'
+   481→   481→              }`}
+   482→   482→            >
+   483→   483→              <tab.icon className="h-3.5 w-3.5" />
+   484→   484→              {tab.label}
+   485→   485→              <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5">
+   486→   486→                {tab.count}
+   487→   487→              </Badge>
+   488→   488→            </button>
+   489→   489→          ))}
+   490→   490→        </div>
+   491→   491→
+   492→   492→        {/* ===================== PRODUCTS TAB ===================== */}
+   493→   493→        {activeTab === 'products' && (
+   494→   494→          <div className="space-y-4">
+   495→   495→            {/* Product Form */}
+   496→   496→            <AnimatePresence>
+   497→   497→              {showForm && (
+   498→   498→                <motion.div
+   499→   499→                  ref={formRef}
+   500→   500→                  initial={{ opacity: 0, height: 0 }}
+   501→   501→                  animate={{ opacity: 1, height: 'auto' }}
+   502→   502→                  exit={{ opacity: 0, height: 0 }}
+   503→   503→                  className="border rounded-sm overflow-hidden"
+   504→   504→                >
+   505→   505→                  <div className="bg-cream px-6 py-4 flex items-center justify-between border-b">
+   506→   506→                    <h3 className="text-sm tracking-wider uppercase font-medium">
+   507→   507→                      {editingId ? 'Edit Product' : 'New Product'}
+   508→   508→                    </h3>
+   509→   509→                    <button onClick={resetForm} className="p-1 hover:text-destructive">
+   510→   510→                      <X className="h-4 w-4" />
+   511→   511→                    </button>
+   512→   512→                  </div>
+   513→   513→
+   514→   514→                  <div className="p-6 space-y-6">
+   515→   515→                    {/* Basic Info */}
+   516→   516→                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   517→   517→                      <div className="md:col-span-2">
+   518→   518→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Product Name *</label>
+   519→   519→                        <Input
+   520→   520→                          value={form.name}
+   521→   521→                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+   522→   522→                          placeholder="e.g. Gucci Horsebit 1955 Loafer"
+   523→   523→                          className="h-10"
+   524→   524→                        />
+   525→   525→                      </div>
+   526→   526→                      <div className="md:col-span-2">
+   527→   527→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Description</label>
+   528→   528→                        <Textarea
+   529→   529→                          value={form.description}
+   530→   530→                          onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+   531→   531→                          placeholder="Detailed product description..."
+   532→   532→                          rows={3}
+   533→   533→                        />
+   534→   534→                      </div>
+   535→   535→                      <div>
+   536→   536→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Price (₹) *</label>
+   537→   537→                        <Input
+   538→   538→                          type="number" step="0.01"
+   539→   539→                          value={form.price}
+   540→   540→                          onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+   541→   541→                          placeholder="980"
+   542→   542→                        />
+   543→   543→                      </div>
+   544→   544→                      <div>
+   545→   545→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Compare at Price (₹)</label>
+   546→   546→                        <Input
+   547→   547→                          type="number" step="0.01"
+   548→   548→                          value={form.compareAtPrice}
+   549→   549→                          onChange={(e) => setForm((p) => ({ ...p, compareAtPrice: e.target.value }))}
+   550→   550→                          placeholder="1200 (optional, for sale)"
+   551→   551→                        />
+   552→   552→                      </div>
+   553→   553→                    </div>
+   554→   554→
+   555→   555→                    {/* Brand & Category & Flags */}
+   556→   556→                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   557→   557→                      <div>
+   558→   558→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Brand *</label>
+   559→   559→                        <select
+   560→   560→                          value={form.brandId}
+   561→   561→                          onChange={(e) => setForm((p) => ({ ...p, brandId: e.target.value }))}
+   562→   562→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   563→   563→                        >
+   564→   564→                          <option value="">Select Brand</option>
+   565→   565→                          {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
+   566→   566→                        </select>
+   567→   567→                      </div>
+   568→   568→                      <div>
+   569→   569→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Category *</label>
+   570→   570→                        <select
+   571→   571→                          value={form.categoryId}
+   572→   572→                          onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value, subCategoryId: '' }))}
+   573→   573→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   574→   574→                        >
+   575→   575→                          <option value="">Select Category</option>
+   576→   576→                          {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+   577→   577→                        </select>
+   578→   578→                      </div>
+   579→   579→                      <div>
+   580→   580→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Sub-Category</label>
+   581→   581→                        <select
+   582→   582→                          value={form.subCategoryId}
+   583→   583→                          onChange={(e) => setForm((p) => ({ ...p, subCategoryId: e.target.value }))}
+   584→   584→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   585→   585→                          disabled={!selectedCategory}
+   586→   586→                        >
+   587→   587→                          <option value="">None</option>
+   588→   588→                          {subCategories.map((sc) => (<option key={sc.id} value={sc.id}>{sc.name}</option>))}
+   589→   589→                        </select>
+   590→   590→                      </div>
+   591→   591→                      <div className="flex items-end gap-2 flex-wrap">
+   592→   592→                        {([
+   593→   593→                          { key: 'featured' as const, label: 'Featured' },
+   594→   594→                          { key: 'bestseller' as const, label: 'Bestseller' },
+   595→   595→                          { key: 'newArrival' as const, label: 'New' },
+   596→   596→                        ]).map((flag) => (
+   597→   597→                          <label
+   598→   598→                            key={flag.key}
+   599→   599→                            className={`flex items-center gap-1.5 px-3 py-2 border text-[10px] tracking-wider uppercase cursor-pointer transition-colors ${
+   600→   600→                              form[flag.key] ? 'border-gold bg-gold/10 text-gold' : 'border-border hover:border-gold/50'
+   601→   601→                            }`}
+   602→   602→                          >
+   603→   603→                            <input
+   604→   604→                              type="checkbox"
+   605→   605→                              checked={form[flag.key]}
+   606→   606→                              onChange={(e) => setForm((p) => ({ ...p, [flag.key]: e.target.checked }))}
+   607→   607→                              className="sr-only"
+   608→   608→                            />
+   609→   609→                            {flag.label}
+   610→   610→                          </label>
+   611→   611→                        ))}
+   612→   612→                      </div>
+   613→   613→                    </div>
+   614→   614→
+   615→   615→                    <Separator />
+   616→   616→
+   617→   617→                    {/* Images */}
+   618→   618→                    <div>
+   619→   619→                      <div className="flex items-center justify-between mb-3">
+   620→   620→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   621→   621→                          <ImageIcon className="h-3.5 w-3.5" />
+   622→   622→                          Product Images * ({form.images.length} added)
+   623→   623→                        </label>
+   624→   624→                        <button
+   625→   625→                          onClick={() => setShowBulkImages(!showBulkImages)}
+   626→   626→                          className="text-[10px] text-gold hover:text-gold-dark tracking-wider uppercase transition-colors"
+   627→   627→                        >
+   628→   628→                          {showBulkImages ? 'Single URL' : 'Bulk Paste'}
+   629→   629→                        </button>
+   630→   630→                      </div>
+   631→   631→
+   632→   632→                      {showBulkImages ? (
+   633→   633→                        <div className="space-y-2">
+   634→   634→                          <Textarea
+   635→   635→                            value={bulkImageText}
+   636→   636→                            onChange={(e) => setBulkImageText(e.target.value)}
+   637→   637→                            placeholder={"Paste multiple image URLs, one per line:\nhttps://images.unsplash.com/photo-xxx?w=800\nhttps://images.unsplash.com/photo-yyy?w=800\nhttps://images.unsplash.com/photo-zzz?w=800"}
+   638→   638→                            rows={5}
+   639→   639→                            className="text-xs font-mono"
+   640→   640→                          />
+   641→   641→                          <Button onClick={addBulkImages} variant="outline" size="sm" className="text-xs">
+   642→   642→                            <Upload className="mr-1 h-3 w-3" />
+   643→   643→                            Add All URLs
+   644→   644→                          </Button>
+   645→   645→                        </div>
+   646→   646→                      ) : (
+   647→   647→                        <div className="flex gap-2 mb-3">
+   648→   648→                          <Input
+   649→   649→                            value={imageInput}
+   650→   650→                            onChange={(e) => setImageInput(e.target.value)}
+   651→   651→                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addImage())}
+   652→   652→                            placeholder="https://images.unsplash.com/photo-xxx?w=800"
+   653→   653→                            className="flex-1"
+   654→   654→                          />
+   655→   655→                          <Button onClick={addImage} variant="outline" size="sm">
+   656→   656→                            <Plus className="h-4 w-4" />
+   657→   657→                          </Button>
+   658→   658→                        </div>
+   659→   659→                      )}
+   660→   660→
+   661→   661→                      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2">
+   662→   662→                        {form.images.map((img, idx) => (
+   663→   663→                          <div key={idx} className="relative aspect-square border bg-secondary rounded-sm overflow-hidden group">
+   664→   664→                            <img src={img} alt="" className="w-full h-full object-cover" />
+   665→   665→                            <button
+   666→   666→                              onClick={() => removeImage(idx)}
+   667→   667→                              className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+   668→   668→                            >
+   669→   669→                              <X className="h-2.5 w-2.5" />
+   670→   670→                            </button>
+   671→   671→                            <span className="absolute bottom-0.5 left-0.5 text-[9px] bg-black/50 text-white px-1 rounded">{idx + 1}</span>
+   672→   672→                          </div>
+   673→   673→                        ))}
+   674→   674→                        {form.images.length === 0 && (
+   675→   675→                          <div className="aspect-square border-2 border-dashed rounded-sm flex flex-col items-center justify-center text-warm-gray col-span-full h-24">
+   676→   676→                            <Upload className="h-6 w-6 mb-1" />
+   677→   677→                            <span className="text-[10px]">No images — paste URLs above</span>
+   678→   678→                          </div>
+   679→   679→                        )}
+   680→   680→                      </div>
+   681→   681→                    </div>
+   682→   682→
+   683→   683→                    <Separator />
+   684→   684→
+   685→   685→                    {/* Variants */}
+   686→   686→                    <div>
+   687→   687→                      <div className="flex items-center justify-between mb-3">
+   688→   688→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   689→   689→                          <Layers className="h-3.5 w-3.5" />
+   690→   690→                          Variants ({form.variants.length})
+   691→   691→                        </label>
+   692→   692→                        <Button variant="ghost" size="sm" onClick={addVariant} className="text-xs h-7">
+   693→   693→                          <Plus className="h-3 w-3 mr-1" /> Add
+   694→   694→                        </Button>
+   695→   695→                      </div>
+   696→   696→                      <div className="space-y-2">
+   697→   697→                        {form.variants.map((variant, idx) => (
+   698→   698→                          <div key={idx} className="border rounded-sm p-3">
+   699→   699→                            <div className="flex items-center justify-between mb-2">
+   700→   700→                              <span className="text-[10px] tracking-wider uppercase text-warm-gray">Variant {idx + 1}</span>
+   701→   701→                              {form.variants.length > 1 && (
+   702→   702→                                <button onClick={() => removeVariant(idx)} className="text-warm-gray hover:text-destructive">
+   703→   703→                                  <Trash2 className="h-3 w-3" />
+   704→   704→                                </button>
+   705→   705→                              )}
+   706→   706→                            </div>
+   707→   707→                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+   708→   708→                              <Input value={variant.color} onChange={(e) => updateVariant(idx, 'color', e.target.value)} placeholder="Color" className="h-8 text-xs" />
+   709→   709→                              <Input value={variant.size} onChange={(e) => updateVariant(idx, 'size', e.target.value)} placeholder="Size" className="h-8 text-xs" />
+   710→   710→                              <Input value={variant.material} onChange={(e) => updateVariant(idx, 'material', e.target.value)} placeholder="Material" className="h-8 text-xs" />
+   711→   711→                              <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(idx, 'price', e.target.value)} placeholder="Price (₹)" className="h-8 text-xs" />
+   712→   712→                              <Input type="number" value={variant.stock} onChange={(e) => updateVariant(idx, 'stock', e.target.value)} placeholder="Stock" className="h-8 text-xs" />
+   713→   713→                              <Input value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} placeholder="Label" className="h-8 text-xs" />
+   714→   714→                            </div>
+   715→   715→                          </div>
+   716→   716→                        ))}
+   717→   717→                      </div>
+   718→   718→                    </div>
+   719→   719→
+   720→   720→                    <Separator />
+   721→   721→
+   722→   722→                    {/* Attributes */}
+   723→   723→                    <div>
+   724→   724→                      <div className="flex items-center justify-between mb-3">
+   725→   725→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   726→   726→                          <Settings className="h-3.5 w-3.5" />
+   727→   727→                          Attributes ({form.attributes.filter(a => a.name).length})
+   728→   728→                        </label>
+   729→   729→                        <Button variant="ghost" size="sm" onClick={addAttribute} className="text-xs h-7">
+   730→   730→                          <Plus className="h-3 w-3 mr-1" /> Add
+   731→   731→                        </Button>
+   732→   732→                      </div>
+   733→   733→                      <div className="space-y-2">
+   734→   734→                        {form.attributes.map((attr, idx) => (
+   735→   735→                          <div key={idx} className="flex items-center gap-2">
+   736→   736→                            <Input value={attr.name} onChange={(e) => updateAttribute(idx, 'name', e.target.value)} placeholder="Name (e.g. Material)" className="h-8 text-xs flex-1" />
+   737→   737→                            <Input value={attr.value} onChange={(e) => updateAttribute(idx, 'value', e.target.value)} placeholder="Value (e.g. Calfskin)" className="h-8 text-xs flex-[2]" />
+   738→   738→                            {form.attributes.length > 1 && (
+   739→   739→                              <button onClick={() => removeAttribute(idx)} className="p-1 text-warm-gray hover:text-destructive flex-shrink-0">
+   740→   740→                                <X className="h-3.5 w-3.5" />
+   741→   741→                              </button>
+   742→   742→                            )}
+   743→   743→                          </div>
+   744→   744→                        ))}
+   745→   745→                      </div>
+   746→   746→                    </div>
+   747→   747→
+   748→   748→                    <Separator />
+   749→   749→
+   750→   750→                    {/* Tags */}
+   751→   751→                    <div>
+   752→   752→                      <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray mb-3">
+   753→   753→                        <Tag className="h-3.5 w-3.5" /> Tags ({form.selectedTags.length} selected)
+   754→   754→                      </label>
+   755→   755→                      <div className="flex flex-wrap gap-2">
+   756→   756→                        {tags.map((tag) => (
+   757→   757→                          <button
+   758→   758→                            key={tag.id}
+   759→   759→                            onClick={() => toggleTag(tag.id)}
+   760→   760→                            className={`text-[10px] tracking-wider uppercase px-3 py-1.5 border transition-colors ${
+   761→   761→                              form.selectedTags.includes(tag.id)
+   762→   762→                                ? 'border-gold bg-gold/10 text-gold'
+   763→   763→                                : 'border-border hover:border-gold/50 hover:text-gold text-warm-gray'
+   764→   764→                            }`}
+   765→   765→                          >{tag.name}</button>
+   766→   766→                        ))}
+   767→   767→                      </div>
+   768→   768→                    </div>
+   769→   769→
+   770→   770→                    {/* Submit */}
+   771→   771→                    <div className="flex items-center gap-3 pt-2 flex-wrap">
+   772→   772→                      <Button
+   773→   773→                        onClick={() => handleSubmit(false)}
+   774→   774→                        disabled={isSubmitting}
+   775→   775→                        className="tracking-[0.15em] uppercase text-xs bg-charcoal hover:bg-charcoal/90 px-6"
+   776→   776→                      >
+   777→   777→                        {isSubmitting ? <span className="animate-pulse">Saving...</span> : <><Save className="mr-2 h-4 w-4" />{editingId ? 'Update' : 'Create Product'}</>}
+   778→   778→                      </Button>
+   779→   779→                      {!editingId && (
+   780→   780→                        <Button
+   781→   781→                          onClick={() => handleSubmit(true)}
+   782→   782→                          disabled={isSubmitting}
+   783→   783→                          variant="outline"
+   784→   784→                          className="tracking-[0.15em] uppercase text-xs px-6 border-gold/40 text-gold hover:bg-gold/10"
+   785→   785→                        >
+   786→   786→                          <Plus className="mr-2 h-3.5 w-3.5" />
+   787→   787→                          Create & Add Another
+   788→   788→                        </Button>
+   789→   789→                      )}
+   790→   790→                      <Button variant="outline" onClick={resetForm} className="tracking-[0.15em] uppercase text-xs">
+   791→   791→                        Cancel
+   792→   792→                      </Button>
+   793→   793→                    </div>
+   794→   794→                  </div>
+   795→   795→                </motion.div>
+   796→   796→              )}
+   797→   797→            </AnimatePresence>
+   798→   798→
+   799→   799→            {/* Search + Stats */}
+   800→   800→            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+   801→   801→              <div className="relative flex-1 max-w-sm">
+   802→   802→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+   803→   803→                <Input
+   804→   804→                  value={adminSearch}
+   805→   805→                  onChange={(e) => setAdminSearch(e.target.value)}
+   806→   806→                  placeholder="Search products..."
+   807→   807→                  className="pl-9 h-9 text-xs"
+   808→   808→                />
+   809→   809→              </div>
+   810→   810→              <div className="flex items-center gap-3">
+   811→   811→                <span className="text-xs text-warm-gray">
+   812→   812→                  Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{adminTotal}</span> products
+   813→   813→                </span>
+   814→   814→                <Button
+   815→   815→                  variant="ghost"
+   816→   816→                  size="sm"
+   817→   817→                  onClick={() => fetchAdminProducts(1, false, adminSearch || undefined)}
+   818→   818→                  className="h-8 text-xs"
+   819→   819→                >
+   820→   820→                  <RefreshCw className="h-3 w-3" />
+   821→   821→                </Button>
+   822→   822→              </div>
+   823→   823→            </div>
+   824→   824→
+   825→   825→            {/* Product List */}
+   826→   826→            {displayedProducts.length === 0 && !isLoadingAdmin ? (
+   827→   827→              <div className="text-center py-20">
+   828→   828→                <PackageOpen className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
+   829→   829→                <p className="text-warm-gray text-sm">No products found.</p>
+   830→   830→              </div>
+   831→   831→            ) : (
+   832→   832→              <div className="border rounded-sm overflow-hidden">
+   833→   833→                <div className="overflow-x-auto">
+   834→   834→                  <table className="w-full">
+   835→   835→                    <thead>
+   836→   836→                      <tr className="bg-cream border-b">
+   837→   837→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Product</th>
+   838→   838→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Brand</th>
+   839→   839→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden md:table-cell">Category</th>
+   840→   840→                        <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Price</th>
+   841→   841→                        <th className="text-center text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden lg:table-cell">Flags</th>
+   842→   842→                        <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
+   843→   843→                      </tr>
+   844→   844→                    </thead>
+   845→   845→                    <tbody>
+   846→   846→                      {displayedProducts.map((product) => (
+   847→   847→                        <tr key={product.id} className="border-b hover:bg-cream/50 transition-colors">
+   848→   848→                          <td className="px-4 py-3">
+   849→   849→                            <div className="flex items-center gap-3">
+   850→   850→                              <div className="w-10 h-10 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
+   851→   851→                                {(() => { try { const imgs = JSON.parse(product.images); return imgs[0] ? <img src={imgs[0]} alt="" className="w-full h-full object-cover" /> : null; } catch { return null; } })()}
+   852→   852→                              </div>
+   853→   853→                              <div className="min-w-0">
+   854→   854→                                <p className="text-xs font-medium truncate max-w-[200px]">{product.name}</p>
+   855→   855→                                <p className="text-[10px] text-warm-gray">{product.variants.length} variants</p>
+   856→   856→                              </div>
+   857→   857→                            </div>
+   858→   858→                          </td>
+   859→   859→                          <td className="px-4 py-3 hidden sm:table-cell">
+   860→   860→                            <span className="text-xs text-warm-gray">{product.brand.name}</span>
+   861→   861→                          </td>
+   862→   862→                          <td className="px-4 py-3 hidden md:table-cell">
+   863→   863→                            <span className="text-xs text-warm-gray">{product.category.name}</span>
+   864→   864→                          </td>
+   865→   865→                          <td className="px-4 py-3 text-right">
+   866→   866→                            <span className="text-xs font-medium">₹{product.price.toLocaleString('en-IN')}</span>
+   867→   867→                            {product.compareAtPrice && (
+   868→   868→                              <span className="text-[10px] text-warm-gray line-through ml-1">₹{product.compareAtPrice.toLocaleString('en-IN')}</span>
+   869→   869→                            )}
+   870→   870→                          </td>
+   871→   871→                          <td className="px-4 py-3 hidden lg:table-cell">
+   872→   872→                            <div className="flex items-center justify-center gap-1">
+   873→   873→                              {product.featured && <Badge className="text-[9px] px-1.5 py-0 border-gold/30 bg-gold/10 text-gold">Featured</Badge>}
+   874→   874→                              {product.bestseller && <Badge className="text-[9px] px-1.5 py-0">Bestseller</Badge>}
+   875→   875→                              {product.newArrival && <Badge className="text-[9px] px-1.5 py-0 border-charcoal/30">New</Badge>}
+   876→   876→                            </div>
+   877→   877→                          </td>
+   878→   878→                          <td className="px-4 py-3">
+   879→   879→                            <div className="flex items-center justify-end gap-0.5">
+   880→   880→                              <button onClick={() => handleDuplicateProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Duplicate">
+   881→   881→                                <Copy className="h-3.5 w-3.5" />
+   882→   882→                              </button>
+   883→   883→                              <button onClick={() => handleEditProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Edit">
+   884→   884→                                <Edit3 className="h-3.5 w-3.5" />
+   885→   885→                              </button>
+   886→   886→                              <button onClick={() => handleDeleteProduct(product.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+   887→   887→                                <Trash2 className="h-3.5 w-3.5" />
+   888→   888→                              </button>
+   889→   889→                            </div>
+   890→   890→                          </td>
+   891→   891→                        </tr>
+   892→   892→                      ))}
+   893→   893→                    </tbody>
+   894→   894→                  </table>
+   895→   895→                </div>
+   896→   896→
+   897→   897→                {/* Load More */}
+   898→   898→                {displayedProducts.length < adminTotal && (
+   899→   899→                  <div className="border-t py-4 text-center">
+   900→   900→                    <Button
+   901→   901→                      variant="outline"
+   902→   902→                      onClick={loadMore}
+   903→   903→                      disabled={isLoadingAdmin}
+   904→   904→                      className="tracking-wider uppercase text-xs"
+   905→   905→                    >
+   906→   906→                      {isLoadingAdmin ? (
+   907→   907→                        <span className="animate-pulse">Loading...</span>
+   908→   908→                      ) : (
+   909→   909→                        <>
+   910→   910→                          <ChevronDown className="mr-2 h-4 w-4" />
+   911→   911→                          Load More ({adminTotal - displayedProducts.length} remaining)
+   912→   912→                        </>
+   913→   913→                      )}
+   914→   914→                    </Button>
+   915→   915→                  </div>
+   916→   916→                )}
+   917→   917→              </div>
+   918→   918→            )}
+   919→   919→          </div>
+   920→   920→        )}
+   921→   921→
+   922→   922→        {/* ===================== BRANDS TAB ===================== */}
+   923→   923→        {activeTab === 'brands' && (
+   924→   924→          <div className="space-y-4">
+   925→   925→            <AnimatePresence>
+   926→   926→              {showBrandForm && (
+   927→   927→                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+   928→   928→                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+   929→   929→                    <h3 className="text-xs tracking-wider uppercase font-medium">New Brand</h3>
+   930→   930→                    <button onClick={() => setShowBrandForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+   931→   931→                  </div>
+   932→   932→                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+   933→   933→                    <Input value={brandForm.name} onChange={(e) => setBrandForm((p) => ({ ...p, name: e.target.value }))} placeholder="Brand Name *" />
+   934→   934→                    <Input value={brandForm.country} onChange={(e) => setBrandForm((p) => ({ ...p, country: e.target.value }))} placeholder="Country" />
+   935→   935→                    <Input value={brandForm.foundedYear} onChange={(e) => setBrandForm((p) => ({ ...p, foundedYear: e.target.value }))} placeholder="Founded Year" />
+   936→   936→                    <div className="flex gap-2">
+   937→   937→                      <Button onClick={handleCreateBrand} size="sm" className="flex-1 tracking-wider uppercase text-xs">Create</Button>
+   938→   938→                      <Button variant="outline" size="sm" onClick={() => setShowBrandForm(false)}>Cancel</Button>
+   939→   939→                    </div>
+   940→   940→                  </div>
+   941→   941→                </motion.div>
+   942→   942→              )}
+   943→   943→            </AnimatePresence>
+   944→   944→            {!showBrandForm && (
+   945→   945→              <Button variant="outline" onClick={() => setShowBrandForm(true)} className="tracking-wider uppercase text-xs">
+   946→   946→                <Plus className="mr-2 h-4 w-4" /> Add Brand
+   947→   947→              </Button>
+   948→   948→            )}
+   949→   949→            <div className="border rounded-sm overflow-hidden">
+   950→   950→              <table className="w-full">
+   951→   951→                <thead><tr className="bg-cream border-b">
+   952→   952→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Brand</th>
+   953→   953→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Country</th>
+   954→   954→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+   955→   955→                </tr></thead>
+   956→   956→                <tbody>{brands.map((brand) => (
+   957→   957→                  <tr key={brand.id} className="border-b">
+   958→   958→                    <td className="px-4 py-3">
+   959→   959→                      <div className="flex items-center gap-3">
+   960→   960→                        <div className="w-8 h-8 bg-charcoal text-white rounded-full flex items-center justify-center text-xs font-medium">{brand.logo || brand.name[0]}</div>
+   961→   961→                        <div><p className="text-xs font-medium">{brand.name}</p><p className="text-[10px] text-warm-gray">{brand.foundedYear || ''}</p></div>
+   962→   962→                      </div>
+   963→   963→                    </td>
+   964→   964→                    <td className="px-4 py-3 hidden sm:table-cell"><span className="text-xs text-warm-gray">{brand.country || '-'}</span></td>
+   965→   965→                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{brand._count.products}</Badge></td>
+   966→   966→                  </tr>
+   967→   967→                ))}</tbody>
+   968→   968→              </table>
+   969→   969→            </div>
+   970→   970→          </div>
+   971→   971→        )}
+   972→   972→
+   973→   973→        {/* ===================== CATEGORIES TAB ===================== */}
+   974→   974→        {activeTab === 'categories' && (
+   975→   975→          <div className="space-y-4">
+   976→   976→            <AnimatePresence>
+   977→   977→              {showCategoryForm && (
+   978→   978→                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+   979→   979→                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+   980→   980→                    <h3 className="text-xs tracking-wider uppercase font-medium">New Category</h3>
+   981→   981→                    <button onClick={() => setShowCategoryForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+   982→   982→                  </div>
+   983→   983→                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+   984→   984→                    <Input value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="Category Name *" />
+   985→   985→                    <Input value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" />
+   986→   986→                    <div className="flex gap-2">
+   987→   987→                      <Button onClick={handleCreateCategory} size="sm" className="flex-1 tracking-wider uppercase text-xs">Create</Button>
+   988→   988→                      <Button variant="outline" size="sm" onClick={() => setShowCategoryForm(false)}>Cancel</Button>
+   989→   989→                    </div>
+   990→   990→                  </div>
+   991→   991→                </motion.div>
+   992→   992→              )}
+   993→   993→            </AnimatePresence>
+   994→   994→            {!showCategoryForm && (
+   995→   995→              <Button variant="outline" onClick={() => setShowCategoryForm(true)} className="tracking-wider uppercase text-xs">
+   996→   996→                <Plus className="mr-2 h-4 w-4" /> Add Category
+   997→   997→              </Button>
+   998→   998→            )}
+   999→   999→            <div className="border rounded-sm overflow-hidden">
+  1000→  1000→              <table className="w-full">
+  1001→  1001→                <thead><tr className="bg-cream border-b">
+  1002→  1002→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Category</th>
+  1003→  1003→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Sub-Categories</th>
+  1004→  1004→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+  1005→  1005→                </tr></thead>
+  1006→  1006→                <tbody>{categories.map((cat) => (
+  1007→  1007→                  <tr key={cat.id} className="border-b">
+  1008→  1008→                    <td className="px-4 py-3">
+  1009→  1009→                      <p className="text-xs font-medium">{cat.name}</p>
+  1010→  1010→                      <p className="text-[10px] text-warm-gray">{cat.description || ''}</p>
+  1011→  1011→                    </td>
+  1012→  1012→                    <td className="px-4 py-3 hidden sm:table-cell">
+  1013→  1013→                      <div className="flex flex-wrap gap-1">
+  1014→  1014→                        {cat.subCategories.map((sc) => (<Badge key={sc.id} variant="secondary" className="text-[10px]">{sc.name}</Badge>))}
+  1015→  1015→                        {cat.subCategories.length === 0 && <span className="text-[10px] text-warm-gray">-</span>}
+  1016→  1016→                      </div>
+  1017→  1017→                    </td>
+  1018→  1018→                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{cat._count.products}</Badge></td>
+  1019→  1019→                  </tr>
+  1020→  1020→                ))}</tbody>
+  1021→  1021→              </table>
+  1022→  1022→            </div>
+  1023→  1023→          </div>
+  1024→  1024→        )}
+  1025→  1025→      </div>
+  1026→  1026→    </div>
+  1027→  1027→  );
+  1028→  1028→}
+  1029→  1029→

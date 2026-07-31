@@ -72,6 +72,7 @@ model Product {
   bestseller    Boolean           @default(false)
   newArrival    Boolean           @default(false)
   images        String
+  videoUrl      String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   variants      ProductVariant[]

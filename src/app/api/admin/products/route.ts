@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       bestseller,
       newArrival,
       images,
+      videoUrl,
       variants,
       attributes,
       tags,
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
         bestseller: bestseller || false,
         newArrival: newArrival || false,
         images: typeof images === 'string' ? images : JSON.stringify(images || []),
+        videoUrl: videoUrl || null,
         variants: {
           create: (variants || []).map((v: any) => ({
             name: v.name || '',
@@ -86,7 +88,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
     }
 
-    const { variants, attributes, tags, images, ...productFields } = updateData;
+    const { variants, attributes, tags, images, videoUrl, selectedTags, ...productFields } = updateData;
 
     // Update product fields
     const updated = await db.product.update({
@@ -103,6 +105,7 @@ export async function PUT(request: NextRequest) {
         bestseller: productFields.bestseller,
         newArrival: productFields.newArrival,
         images: typeof images === 'string' ? images : JSON.stringify(images || []),
+        videoUrl: videoUrl || null,
       },
       include: {
         brand: { select: { id: true, name: true, slug: true, logo: true } },

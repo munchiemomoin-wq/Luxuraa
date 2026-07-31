@@ -1,25 +1,26 @@
+# Work Log
+
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Build luxury e-commerce website with brands, categories, products, variants, attributes, and tags
+Agent: Main
+Task: Add file upload for images (4-6) and video URL field to product management
 
 Work Log:
-- Designed Prisma schema with Brand, Category, SubCategory, Tag, Product, ProductVariant, ProductAttribute, ProductTag models
-- Pushed schema to SQLite database
-- Created seed script with 8 luxury brands (Gucci, LV, Prada, Hermès, Chanel, Dior, Balenciaga, Versace)
-- Seeded 6 categories, 19 subcategories, 10 tags, and 26 luxury products with variants and attributes
-- Built 5 API routes: /api/brands, /api/categories, /api/products, /api/products/[id], /api/tags
-- Created Zustand store for state management (navigation, filters, cart, data)
-- Built luxury-styled components: Header, Footer, MobileMenu, CartDrawer, HomePage, ShopPage, ProductCard, ProductDetailPage
-- Applied luxury gold accent theme, custom scrollbar, shimmer animations
-- Verified with Agent Browser: homepage renders, product detail works, cart add-to-bag works, shop page with filters works
-- All lint checks pass
+- Added `videoUrl` (nullable String) to Product model in Prisma schema
+- Ran `prisma db push` to sync DB, regenerated Prisma client
+- Created `/api/admin/upload` POST endpoint — accepts multipart form data with up to 6 image files (JPG, PNG, WebP, GIF, SVG), max 5MB each, saves to `public/uploads/products/` with unique filenames, returns public URL paths
+- Replaced AdminPanel image URL-paste UI with a file upload dropzone (click to select files, drag concept, shows preview grid with numbered thumbnails + empty "Add" slots)
+- Added video URL input field with clear button and confirmation indicator
+- Updated AdminPanel form state, resetForm, keepFormForNext, handleEditProduct, handleSubmit to include videoUrl
+- Updated POST and PUT handlers in `/api/admin/products/route.ts` to persist videoUrl
+- Updated TypeScript Product interface to include `videoUrl: string | null`
+- Updated ProductDetailPage with YouTube/Vimeo URL-to-embed converter and embedded video player (iframe with aspect-video ratio)
+- Cleaned up unused imports (ImageIcon removed, Textarea kept for description)
+- Final build passes with 0 errors, all 12 routes compile
 
 Stage Summary:
-- Fully functional luxury e-commerce SPA on / route
-- 26 products from 8 brands across 6 categories with full variant/attribute/tag support
-- Client-side navigation (Home, Shop, Product Detail, Brand, Category, Search views)
-- Working cart with add/remove/quantity management
-- Advanced filtering by brand, category, price range, tags, and special collections
-- Sort by newest, price, name
-- Responsive design with mobile menu
+- File upload: 4-6 images per product via actual file picker (no more URL pasting)
+- Video URL: optional field on product form, auto-embeds YouTube/Vimeo on product detail page
+- All changes backward-compatible (videoUrl is nullable, existing products unaffected)
+- Files modified: schema.prisma, AdminPanel.tsx, route.ts (products + upload), types/index.ts, ProductDetailPage.tsx
+- Files created: src/app/api/admin/upload/route.ts

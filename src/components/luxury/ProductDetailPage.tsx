@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2 } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -84,6 +84,22 @@ export function ProductDetailPage() {
   } catch {
     images = [];
   }
+
+  // Video embed URL converter
+  const getVideoEmbedUrl = (url: string) => {
+    if (!url) return null;
+    // YouTube watch URL
+    let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+    // Vimeo
+    match = url.match(/vimeo\.com\/(\d+)/);
+    if (match) return `https://player.vimeo.com/video/${match[1]}`;
+    // Already an embed URL
+    if (url.includes('embed') || url.includes('player')) return url;
+    return null;
+  };
+
+  const videoEmbedUrl = getVideoEmbedUrl(productDetail.videoUrl || '');
 
   const colors = [...new Set(productDetail.variants.filter((v) => v.color).map((v) => v.color!))];
   const sizes = [...new Set(productDetail.variants.filter((v) => v.size).map((v) => v.size!))];
@@ -187,6 +203,25 @@ export function ProductDetailPage() {
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Video Section */}
+            {videoEmbedUrl && (
+              <div className="mt-4">
+                <div className="relative aspect-video rounded-sm overflow-hidden border border-border bg-black">
+                  <iframe
+                    src={videoEmbedUrl}
+                    title={`${productDetail.name} video`}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-[10px] text-warm-gray mt-2 flex items-center gap-1.5">
+                  <Play className="h-3 w-3 text-gold" />
+                  Product Video
+                </p>
               </div>
             )}
           </div>

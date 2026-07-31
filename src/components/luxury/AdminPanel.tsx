@@ -5,8 +5,9 @@ import { useStore } from '@/store/useStore';
 import type { Product } from '@/types';
 import {
   Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
-  ImageIcon, Tag, Layers, Settings, ArrowLeft, Check, Upload,
-  Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw
+  Tag, Layers, Settings, ArrowLeft, Check, Upload,
+  Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw,
+  Camera, Video, FileImage, XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,10 +110,9 @@ export function AdminPanel() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageInput, setImageInput] = useState('');
-  const [showBulkImages, setShowBulkImages] = useState(false);
-  const [bulkImageText, setBulkImageText] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -126,6 +126,7 @@ export function AdminPanel() {
     bestseller: false,
     newArrival: false,
     images: [] as string[],
+    videoUrl: '',
     variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }] as VariantRow[],
     attributes: [{ name: '', value: '' }] as AttributeRow[],
     selectedTags: [] as string[],
@@ -144,13 +145,11 @@ export function AdminPanel() {
       bestseller: false,
       newArrival: false,
       images: [],
+      videoUrl: '',
       variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
       attributes: [{ name: '', value: '' }],
       selectedTags: [],
     });
-    setImageInput('');
-    setBulkImageText('');
-    setShowBulkImages(false);
     setEditingId(null);
     setShowForm(false);
   };
@@ -173,12 +172,11 @@ export function AdminPanel() {
       bestseller: false,
       newArrival: false,
       images: [],
+      videoUrl: '',
       variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
       attributes: currentAttributes.filter(a => a.name.trim()),
       selectedTags: currentTags,
     });
-    setImageInput('');
-    setBulkImageText('');
     setEditingId(null);
     // Keep form open for rapid entry
   };
@@ -196,6 +194,7 @@ export function AdminPanel() {
       bestseller: product.bestseller,
       newArrival: product.newArrival,
       images: (() => { try { return JSON.parse(product.images); } catch { return []; } })(),
+      videoUrl: (product as any).videoUrl || '',
       variants: product.variants.length > 0
         ? product.variants.map((v: any) => ({
             name: v.name,
@@ -280,11 +279,11 @@ export function AdminPanel() {
     if (!form.price) { toast.error('Price is required'); return; }
     if (!form.brandId) { toast.error('Please select a brand'); return; }
     if (!form.categoryId) { toast.error('Please select a category'); return; }
-    if (form.images.length === 0) { toast.error('At least one image URL is required'); return; }
+    if (form.images.length === 0) { toast.error('Please upload at least one image'); return; }
 
     setIsSubmitting(true);
     try {
-      const payload: any = { ...form, tags: form.selectedTags };
+      const payload: any = { ...form, tags: form.selectedTags, videoUrl: form.videoUrl || null };
       const method = editingId ? 'PUT' : 'POST';
       if (editingId) payload.id = editingId;
 
@@ -314,26 +313,47 @@ export function AdminPanel() {
     }
   };
 
-  // ---- Image management ----
-  const addImage = () => {
-    if (imageInput.trim()) {
-      setForm((prev) => ({ ...prev, images: [...prev.images, imageInput.trim()] }));
-      setImageInput('');
-    }
-  };
+  // ---- Image file upload ----
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  const addBulkImages = () => {
-    const urls = bulkImageText
-      .split(/[\n,]+/)
-      .map((u) => u.trim())
-      .filter((u) => u.length > 0 && u.startsWith('http'));
-    if (urls.length > 0) {
-      setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
-      setBulkImageText('');
-      setShowBulkImages(false);
-      toast.success(`Added ${urls.length} image(s)`);
-    } else {
-      toast.error('No valid URLs found. Paste one URL per line.');
+    const remaining = 6 - form.images.length;
+    if (remaining <= 0) {
+      toast.error('Maximum 6 images allowed');
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remaining);
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      filesToUpload.forEach((file) => formData.append('files', file));
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.urls && data.urls.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          images: [...prev.images, ...data.urls],
+        }));
+        toast.success(`Uploaded ${data.urls.length} image(s)`);
+      }
+
+      if (data.errors && data.errors.length > 0) {
+        data.errors.forEach((err: string) => toast.error(err));
+      }
+    } catch {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -614,70 +634,121 @@ export function AdminPanel() {
 
                     <Separator />
 
-                    {/* Images */}
+                    {/* Image Upload */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
-                          <ImageIcon className="h-3.5 w-3.5" />
-                          Product Images * ({form.images.length} added)
+                          <Camera className="h-3.5 w-3.5" />
+                          Product Images * ({form.images.length}/6)
                         </label>
-                        <button
-                          onClick={() => setShowBulkImages(!showBulkImages)}
-                          className="text-[10px] text-gold hover:text-gold-dark tracking-wider uppercase transition-colors"
-                        >
-                          {showBulkImages ? 'Single URL' : 'Bulk Paste'}
-                        </button>
                       </div>
 
-                      {showBulkImages ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={bulkImageText}
-                            onChange={(e) => setBulkImageText(e.target.value)}
-                            placeholder={"Paste multiple image URLs, one per line:\nhttps://images.unsplash.com/photo-xxx?w=800\nhttps://images.unsplash.com/photo-yyy?w=800\nhttps://images.unsplash.com/photo-zzz?w=800"}
-                            rows={5}
-                            className="text-xs font-mono"
-                          />
-                          <Button onClick={addBulkImages} variant="outline" size="sm" className="text-xs">
-                            <Upload className="mr-1 h-3 w-3" />
-                            Add All URLs
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2 mb-3">
-                          <Input
-                            value={imageInput}
-                            onChange={(e) => setImageInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addImage())}
-                            placeholder="https://images.unsplash.com/photo-xxx?w=800"
-                            className="flex-1"
-                          />
-                          <Button onClick={addImage} variant="outline" size="sm">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2">
-                        {form.images.map((img, idx) => (
-                          <div key={idx} className="relative aspect-square border bg-secondary rounded-sm overflow-hidden group">
-                            <img src={img} alt="" className="w-full h-full object-cover" />
-                            <button
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                            <span className="absolute bottom-0.5 left-0.5 text-[9px] bg-black/50 text-white px-1 rounded">{idx + 1}</span>
+                      {/* Upload dropzone */}
+                      <div
+                        onClick={() => form.images.length < 6 && fileInputRef.current?.click()}
+                        className={`relative border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-all ${
+                          isUploading
+                            ? 'border-gold/60 bg-gold/5'
+                            : form.images.length >= 6
+                              ? 'border-border bg-muted cursor-not-allowed'
+                              : 'border-border hover:border-gold/50 hover:bg-cream/50'
+                        }`}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                          multiple
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        {isUploading ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="h-8 w-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs text-gold">Uploading...</span>
                           </div>
-                        ))}
-                        {form.images.length === 0 && (
-                          <div className="aspect-square border-2 border-dashed rounded-sm flex flex-col items-center justify-center text-warm-gray col-span-full h-24">
-                            <Upload className="h-6 w-6 mb-1" />
-                            <span className="text-[10px]">No images — paste URLs above</span>
+                        ) : form.images.length >= 6 ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <Check className="h-8 w-8 text-gold" />
+                            <span className="text-xs text-warm-gray">6 images uploaded (maximum reached)</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="h-12 w-12 rounded-full bg-cream flex items-center justify-center">
+                              <Upload className="h-5 w-5 text-gold" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-foreground font-medium">Click to upload images</p>
+                              <p className="text-[10px] text-warm-gray mt-1">
+                                JPG, PNG, WebP, GIF or SVG — max 5MB each — up to {6 - form.images.length} more
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
+
+                      {/* Image Previews + Empty Slots */}
+                      {form.images.length > 0 && (
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-4">
+                          {form.images.map((img, idx) => (
+                            <div key={idx} className="relative aspect-square border bg-secondary rounded-sm overflow-hidden group">
+                              <img src={img} alt="" className="w-full h-full object-cover" />
+                              <button
+                                onClick={() => removeImage(idx)}
+                                className="absolute top-1 right-1 p-1 bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1.5 py-0.5 rounded-full font-medium">
+                                {idx + 1}
+                              </span>
+                            </div>
+                          ))}
+                          {Array.from({ length: Math.max(0, Math.min(4, 6 - form.images.length)) }).map((_, i) => (
+                            <div
+                              key={`empty-${i}`}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="aspect-square border-2 border-dashed rounded-sm flex flex-col items-center justify-center text-warm-gray/40 cursor-pointer hover:border-gold/40 hover:text-warm-gray/60 transition-colors"
+                            >
+                              <FileImage className="h-5 w-5" />
+                              <span className="text-[9px] mt-1">Add</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Video URL */}
+                    <div>
+                      <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray mb-3">
+                        <Video className="h-3.5 w-3.5" />
+                        Product Video URL
+                        <span className="text-[10px] normal-case tracking-normal text-warm-gray/60">(optional — YouTube, Vimeo, etc.)</span>
+                      </label>
+                      <div className="relative">
+                        <Input
+                          value={form.videoUrl}
+                          onChange={(e) => setForm((p) => ({ ...p, videoUrl: e.target.value }))}
+                          placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                          className="h-10 pr-10"
+                        />
+                        {form.videoUrl && (
+                          <button
+                            onClick={() => setForm((p) => ({ ...p, videoUrl: '' }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-gray hover:text-destructive transition-colors"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      {form.videoUrl && (
+                        <p className="text-[10px] text-gold mt-1.5 flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Video link added — will display on product page
+                        </p>
+                      )}
                     </div>
 
                     <Separator />
