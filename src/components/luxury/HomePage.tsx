@@ -344,7 +344,7 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { icon: Truck, title: 'Free Shipping', desc: 'Complimentary worldwide delivery on orders over ₹1,00,000' },
+              { icon: Truck, title: 'Free Shipping', desc: 'Complimentary worldwide delivery on orders over ₹10,000' },
               { icon: Shield, title: 'Authenticity', desc: 'Every item verified by our expert authentication team' },
               { icon: RefreshCw, title: 'Easy Returns', desc: '14-day hassle-free returns with full refund guarantee' },
               { icon: Star, title: 'Premium Care', desc: 'Dedicated concierge service for all your luxury needs' },

@@ -57,7 +57,7 @@ export function Header() {
     <>
       {/* Top Bar */}
       <div className="bg-charcoal text-white/80 text-xs tracking-widest uppercase text-center py-2 px-4">
-        Complimentary Shipping on Orders Over ₹1,00,000 — Authentic Luxury Guaranteed
+        Complimentary Shipping on Orders Over ₹10,000 — Authentic Luxury Guaranteed
       </div>
 
       {/* Main Header */}
