@@ -1,7 +1,6 @@
-import { db } from '@/lib/db';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = db;
+const prisma = new PrismaClient();
 
 async function seed() {
   console.log('🌱 Seeding luxury e-commerce database...');
