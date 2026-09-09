@@ -7,7 +7,7 @@ import { Footer } from '@/components/luxury/Footer';
 import { HomePage } from '@/components/luxury/HomePage';
 import { ShopPage } from '@/components/luxury/ShopPage';
 import { ProductDetailPage } from '@/components/luxury/ProductDetailPage';
-import { CartDrawer } from '@/components/luxury/CartDrawer';
+import { CheckoutDrawer } from '@/components/luxury/CheckoutDrawer';
 import { MobileMenu } from '@/components/luxury/MobileMenu';
 import { AdminPanel } from '@/components/luxury/AdminPanel';
 import { AdminLogin } from '@/components/luxury/AdminLogin';
@@ -140,7 +140,7 @@ export default function Page() {
       <MobileMenu />
       <main className="flex-1">{renderView()}</main>
       <Footer />
-      <CartDrawer />
+      <CheckoutDrawer />
       <WhatsAppButton />
       <Toaster position="top-right" richColors />
     </div>

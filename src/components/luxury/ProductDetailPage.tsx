@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2, Play } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2, Play, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -380,6 +380,38 @@ export function ProductDetailPage() {
                 )}
               </p>
             )}
+
+            {/* WhatsApp Inquiry */}
+            <Button
+              onClick={() => {
+                const WHATSAPP_NUMBER = '919052681374';
+                const variantInfo = selectedVariant
+                  ? `Variant: ${selectedVariant.name}${selectedVariant.color ? ` | Color: ${selectedVariant.color}` : ''}${selectedVariant.size ? ` | Size: ${selectedVariant.size}` : ''}`
+                  : '';
+                const priceInfo = hasDiscount
+                  ? `Price: ₹${productDetail.price.toLocaleString('en-IN')} (MRP: ₹${productDetail.compareAtPrice!.toLocaleString('en-IN')} — ${discount}% off)`
+                  : `Price: ₹${productDetail.price.toLocaleString('en-IN')}`;
+                const message = [
+                  `Hi! I'm interested in this product from Luxuraa:`,
+                  ``,
+                  `*${productDetail.brand.name} — ${productDetail.name}*`,
+                  priceInfo,
+                  variantInfo,
+                  quantity > 1 ? `Quantity: ${quantity}` : '',
+                  ``,
+                  `Can you share more details or confirm availability?`,
+                ].filter(Boolean).join('\n');
+                window.open(
+                  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+                  '_blank',
+                  'noopener,noreferrer'
+                );
+              }}
+              className="w-full tracking-[0.15em] uppercase text-xs h-11 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-none border-0"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Inquire on WhatsApp
+            </Button>
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2">
