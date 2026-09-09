@@ -3,7 +3,7 @@ import cloudinary, { CLOUDINARY_FOLDER } from '@/lib/cloudinary';
 import { requireAdmin, adminUnauthorized } from '@/lib/admin-auth';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 6;
 
 function getCloudinaryFormat(mimeType: string): string {
@@ -20,10 +20,9 @@ function getCloudinaryFormat(mimeType: string): string {
 export async function POST(request: Request) {
   if (!(await requireAdmin())) return adminUnauthorized();
 
-  // Check if Cloudinary is configured
   if (!process.env.CLOUDINARY_CLOUD_NAME) {
     return NextResponse.json(
-      { error: 'Cloudinary not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env' },
+      { error: 'Cloudinary not configured' },
       { status: 500 }
     );
   }
@@ -56,8 +55,6 @@ export async function POST(request: Request) {
       try {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
-        // Convert to base64 for Cloudinary upload
         const base64 = `data:${file.type};base64,${buffer.toString('base64')}`;
 
         const result = await new Promise<any>((resolve, reject) => {
@@ -93,7 +90,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Delete an image from Cloudinary
 export async function DELETE(request: Request) {
   if (!(await requireAdmin())) return adminUnauthorized();
 

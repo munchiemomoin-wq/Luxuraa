@@ -24,6 +24,7 @@ interface VariantRow {
   material: string;
   price: string;
   stock: string;
+  image: string;
 }
 
 interface AttributeRow {
@@ -105,7 +106,7 @@ export function AdminPanel() {
     : adminProducts;
 
   // ---- Tabs ----
-  const [activeTab, setActiveTab] = useState<'products' | 'brands' | 'categories'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'brands' | 'categories' | 'tags'>('products');
 
   // ---- Product form ----
   const [showForm, setShowForm] = useState(false);
@@ -128,7 +129,7 @@ export function AdminPanel() {
     newArrival: false,
     images: [] as string[],
     videoUrl: '',
-    variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }] as VariantRow[],
+    variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }] as VariantRow[],
     attributes: [{ name: '', value: '' }] as AttributeRow[],
     selectedTags: [] as string[],
   });
@@ -147,7 +148,7 @@ export function AdminPanel() {
       newArrival: false,
       images: [],
       videoUrl: '',
-      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
       attributes: [{ name: '', value: '' }],
       selectedTags: [],
     });
@@ -174,7 +175,7 @@ export function AdminPanel() {
       newArrival: false,
       images: [],
       videoUrl: '',
-      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
       attributes: currentAttributes.filter(a => a.name.trim()),
       selectedTags: currentTags,
     });
@@ -204,8 +205,9 @@ export function AdminPanel() {
             material: v.material || '',
             price: v.price ? String(v.price) : '',
             stock: String(v.stock),
+            image: v.image || '',
           }))
-        : [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10' }],
+        : [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
       attributes: product.attributes.length > 0
         ? product.attributes.map((a: any) => ({ name: a.name, value: a.value }))
         : [{ name: '', value: '' }],
@@ -237,6 +239,7 @@ export function AdminPanel() {
           material: v.material || '',
           price: v.price ? String(v.price) : '',
           stock: String(v.stock),
+          image: v.image || '',
         })),
         attributes: product.attributes.map((a: any) => ({ name: a.name, value: a.value })),
         tags: product.tags.map((t: any) => t.tagId),
@@ -366,7 +369,7 @@ export function AdminPanel() {
   const addVariant = () => {
     setForm((prev) => ({
       ...prev,
-      variants: [...prev.variants, { name: '', color: '', size: '', material: '', price: '', stock: '10' }],
+      variants: [...prev.variants, { name: '', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
     }));
   };
   const removeVariant = (index: number) => {
@@ -406,6 +409,147 @@ export function AdminPanel() {
   const selectedCategory = categories.find((c) => c.id === form.categoryId);
   const subCategories = selectedCategory?.subCategories || [];
 
+  // ---- Variant image upload ----
+  const variantFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingVariantIdx, setUploadingVariantIdx] = useState<number | null>(null);
+
+  const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantIdx: number) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingVariantIdx(variantIdx);
+    try {
+      const formData = new FormData();
+      formData.append('files', files[0]);
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.urls && data.urls.length > 0) {
+        updateVariant(variantIdx, 'image', data.urls[0]);
+        toast.success('Variant image uploaded');
+      }
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploadingVariantIdx(null);
+      if (variantFileInputRef.current) variantFileInputRef.current.value = '';
+    }
+  };
+
+  // ---- SubCategory form ----
+  const [subCatForm, setSubCatForm] = useState({ name: '', categoryId: '', description: '' });
+  const [showSubCatForm, setShowSubCatForm] = useState(false);
+
+  const handleCreateSubCategory = async () => {
+    if (!subCatForm.name.trim() || !subCatForm.categoryId) { toast.error('Name and category are required'); return; }
+    try {
+      const res = await fetch('/api/admin/subcategories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subCatForm),
+      });
+      if (res.ok) {
+        toast.success('Sub-category created successfully');
+        const newCategories = await (await fetch('/api/categories')).json();
+        setCategories(newCategories);
+        setSubCatForm({ name: '', categoryId: '', description: '' });
+        setShowSubCatForm(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to create sub-category');
+      }
+    } catch { toast.error('Error creating sub-category'); }
+  };
+
+  const handleDeleteSubCategory = async (id: string) => {
+    if (!confirm('Delete this sub-category? Products linked to it will lose their sub-category.')) return;
+    try {
+      const res = await fetch(`/api/admin/subcategories?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Sub-category deleted');
+        const newCategories = await (await fetch('/api/categories')).json();
+        setCategories(newCategories);
+      }
+    } catch { toast.error('Error deleting sub-category'); }
+  };
+
+  // ---- Tag form ----
+  const [tagForm, setTagForm] = useState({ name: '' });
+  const [showTagForm, setShowTagForm] = useState(false);
+  const { setTags } = useStore();
+
+  const handleCreateTag = async () => {
+    if (!tagForm.name.trim()) { toast.error('Tag name is required'); return; }
+    try {
+      const res = await fetch('/api/admin/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tagForm),
+      });
+      if (res.ok) {
+        toast.success('Tag created successfully');
+        const newTags = await (await fetch('/api/tags')).json();
+        setTags(newTags);
+        setTagForm({ name: '' });
+        setShowTagForm(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to create tag');
+      }
+    } catch { toast.error('Error creating tag'); }
+  };
+
+  const handleDeleteTag = async (id: string) => {
+    if (!confirm('Delete this tag? It will be removed from all products.')) return;
+    try {
+      const res = await fetch(`/api/admin/tags?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Tag deleted');
+        const newTags = await (await fetch('/api/tags')).json();
+        setTags(newTags);
+      }
+    } catch { toast.error('Error deleting tag'); }
+  };
+
+  // ---- Category form ----
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', image: '' });
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [isUploadingCatImage, setIsUploadingCatImage] = useState(false);
+  const catImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingCatImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('files', files[0]);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.urls && data.urls.length > 0) {
+        setCategoryForm((p) => ({ ...p, image: data.urls[0] }));
+        toast.success('Category image uploaded');
+      }
+    } catch { toast.error('Upload failed'); }
+    finally { setIsUploadingCatImage(false); }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Delete this category? All sub-categories and linked products will lose their category.')) return;
+    try {
+      const res = await fetch(`/api/admin/categories?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Category deleted');
+        const newCategories = await (await fetch('/api/categories')).json();
+        setCategories(newCategories);
+      }
+    } catch { toast.error('Error deleting category'); }
+  };
+
   // ---- Brand form ----
   const [brandForm, setBrandForm] = useState({ name: '', description: '', country: '', foundedYear: '' });
   const [showBrandForm, setShowBrandForm] = useState(false);
@@ -426,28 +570,6 @@ export function AdminPanel() {
         setShowBrandForm(false);
       }
     } catch { toast.error('Error creating brand'); }
-  };
-
-  // ---- Category form ----
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
-
-  const handleCreateCategory = async () => {
-    if (!categoryForm.name.trim()) { toast.error('Category name is required'); return; }
-    try {
-      const res = await fetch('/api/admin/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryForm),
-      });
-      if (res.ok) {
-        toast.success('Category created successfully');
-        const newCategories = await (await fetch('/api/categories')).json();
-        setCategories(newCategories);
-        setCategoryForm({ name: '', description: '' });
-        setShowCategoryForm(false);
-      }
-    } catch { toast.error('Error creating category'); }
   };
 
   // ============================================================
@@ -500,6 +622,7 @@ export function AdminPanel() {
             { key: 'products' as const, label: 'Products', icon: Package, count: adminTotal },
             { key: 'brands' as const, label: 'Brands', icon: Sparkles, count: brands.length },
             { key: 'categories' as const, label: 'Categories', icon: Layers, count: categories.length },
+            { key: 'tags' as const, label: 'Tags', icon: Tag, count: tags.length },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -778,7 +901,7 @@ export function AdminPanel() {
                         {form.variants.map((variant, idx) => (
                           <div key={idx} className="border rounded-sm p-3">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] tracking-wider uppercase text-warm-gray">Variant {idx + 1}</span>
+                              <span className="text-[10px] tracking-wider uppercase text-warm-gray">Variant {idx + 1}{variant.color ? ` — ${variant.color}` : ''}</span>
                               {form.variants.length > 1 && (
                                 <button onClick={() => removeVariant(idx)} className="text-warm-gray hover:text-destructive">
                                   <Trash2 className="h-3 w-3" />
@@ -792,6 +915,48 @@ export function AdminPanel() {
                               <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(idx, 'price', e.target.value)} placeholder="Price (₹)" className="h-8 text-xs" />
                               <Input type="number" value={variant.stock} onChange={(e) => updateVariant(idx, 'stock', e.target.value)} placeholder="Stock" className="h-8 text-xs" />
                               <Input value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} placeholder="Label" className="h-8 text-xs" />
+                            </div>
+                            {/* Variant Image Upload */}
+                            <div className="mt-2 flex items-center gap-3">
+                              <input
+                                ref={variantFileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={(e) => handleVariantImageUpload(e, idx)}
+                                className="hidden"
+                              />
+                              {variant.image ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-10 h-10 rounded-sm overflow-hidden border bg-secondary">
+                                    <img src={variant.image} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                  <span className="text-[10px] text-warm-gray truncate max-w-[120px]">Image set</span>
+                                  <button
+                                    onClick={() => updateVariant(idx, 'image', '')}
+                                    className="text-warm-gray hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setUploadingVariantIdx(idx);
+                                    variantFileInputRef.current?.click();
+                                  }}
+                                  disabled={uploadingVariantIdx === idx}
+                                  className="flex items-center gap-1.5 text-[10px] text-warm-gray hover:text-gold transition-colors border border-dashed px-3 py-1.5 rounded-sm"
+                                >
+                                  {uploadingVariantIdx === idx ? (
+                                    <span className="animate-pulse">Uploading...</span>
+                                  ) : (
+                                    <>
+                                      <Camera className="h-3 w-3" />
+                                      Upload color image
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1053,20 +1218,46 @@ export function AdminPanel() {
 
         {/* ===================== CATEGORIES TAB ===================== */}
         {activeTab === 'categories' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Add Category Form */}
             <AnimatePresence>
               {showCategoryForm && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
                   <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
                     <h3 className="text-xs tracking-wider uppercase font-medium">New Category</h3>
-                    <button onClick={() => setShowCategoryForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+                    <button onClick={() => { setShowCategoryForm(false); setCategoryForm({ name: '', description: '', image: '' }); }} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
                   </div>
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <Input value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="Category Name *" />
-                    <Input value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" />
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Input value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="Category Name *" />
+                      <Input value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" />
+                    </div>
+                    {/* Category Image Upload */}
+                    <div>
+                      <label className="block text-[10px] tracking-wider uppercase text-warm-gray mb-1.5">Category Image</label>
+                      <input ref={catImageInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCategoryImageUpload} className="hidden" />
+                      {categoryForm.image ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-sm overflow-hidden border bg-secondary">
+                            <img src={categoryForm.image} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <button onClick={() => setCategoryForm((p) => ({ ...p, image: '' }))} className="text-xs text-warm-gray hover:text-destructive">
+                            <X className="h-3 w-3 mr-1 inline" />Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => catImageInputRef.current?.click()}
+                          disabled={isUploadingCatImage}
+                          className="flex items-center gap-2 text-xs text-warm-gray hover:text-gold border border-dashed px-4 py-2 rounded-sm transition-colors"
+                        >
+                          {isUploadingCatImage ? <span className="animate-pulse">Uploading...</span> : <><Upload className="h-3.5 w-3.5" /> Upload Image</>}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex gap-2">
-                      <Button onClick={handleCreateCategory} size="sm" className="flex-1 tracking-wider uppercase text-xs">Create</Button>
-                      <Button variant="outline" size="sm" onClick={() => setShowCategoryForm(false)}>Cancel</Button>
+                      <Button onClick={handleCreateCategory} size="sm" className="tracking-wider uppercase text-xs">Create</Button>
+                      <Button variant="outline" size="sm" onClick={() => { setShowCategoryForm(false); setCategoryForm({ name: '', description: '', image: '' }); }}>Cancel</Button>
                     </div>
                   </div>
                 </motion.div>
@@ -1077,26 +1268,127 @@ export function AdminPanel() {
                 <Plus className="mr-2 h-4 w-4" /> Add Category
               </Button>
             )}
+
+            {/* Category List */}
             <div className="border rounded-sm overflow-hidden">
               <table className="w-full">
                 <thead><tr className="bg-cream border-b">
                   <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Category</th>
                   <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Sub-Categories</th>
                   <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
                 </tr></thead>
                 <tbody>{categories.map((cat) => (
                   <tr key={cat.id} className="border-b">
                     <td className="px-4 py-3">
-                      <p className="text-xs font-medium">{cat.name}</p>
-                      <p className="text-[10px] text-warm-gray">{cat.description || ''}</p>
+                      <div className="flex items-center gap-3">
+                        {cat.image && <div className="w-8 h-8 rounded-sm overflow-hidden bg-secondary flex-shrink-0"><img src={cat.image} alt="" className="w-full h-full object-cover" /></div>}
+                        <div>
+                          <p className="text-xs font-medium">{cat.name}</p>
+                          <p className="text-[10px] text-warm-gray">{cat.description || ''}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {cat.subCategories.map((sc) => (<Badge key={sc.id} variant="secondary" className="text-[10px]">{sc.name}</Badge>))}
+                        {cat.subCategories.map((sc) => (
+                          <span key={sc.id} className="inline-flex items-center gap-1 text-[10px] bg-secondary px-2 py-0.5 rounded-sm">
+                            {sc.name}
+                            <button onClick={() => handleDeleteSubCategory(sc.id)} className="text-warm-gray hover:text-destructive ml-0.5"><X className="h-2.5 w-2.5" /></button>
+                          </span>
+                        ))}
                         {cat.subCategories.length === 0 && <span className="text-[10px] text-warm-gray">-</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{cat._count.products}</Badge></td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+
+            <Separator />
+
+            {/* Sub-Category Management */}
+            <div>
+              <h3 className="text-sm tracking-wider uppercase font-medium mb-3 flex items-center gap-2">
+                <Layers className="h-4 w-4 text-gold" /> Sub-Categories
+              </h3>
+              <AnimatePresence>
+                {showSubCatForm && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden mb-3">
+                    <div className="bg-cream px-4 py-2 border-b flex items-center justify-between">
+                      <span className="text-[10px] tracking-wider uppercase font-medium">New Sub-Category</span>
+                      <button onClick={() => setShowSubCatForm(false)} className="p-1 hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <select value={subCatForm.categoryId} onChange={(e) => setSubCatForm((p) => ({ ...p, categoryId: e.target.value }))} className="h-9 px-3 text-xs border bg-background rounded-sm">
+                        <option value="">Parent Category *</option>
+                        {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      </select>
+                      <Input value={subCatForm.name} onChange={(e) => setSubCatForm((p) => ({ ...p, name: e.target.value }))} placeholder="Sub-Category Name *" className="h-9 text-xs" />
+                      <div className="flex gap-2">
+                        <Button onClick={handleCreateSubCategory} size="sm" className="flex-1 tracking-wider uppercase text-[10px]">Create</Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowSubCatForm(false)} className="text-[10px]">Cancel</Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {!showSubCatForm && (
+                <Button variant="outline" size="sm" onClick={() => setShowSubCatForm(true)} className="tracking-wider uppercase text-[10px]">
+                  <Plus className="mr-1.5 h-3 w-3" /> Add Sub-Category
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================== TAGS TAB ===================== */}
+        {activeTab === 'tags' && (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {showTagForm && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+                    <h3 className="text-xs tracking-wider uppercase font-medium">New Tag</h3>
+                    <button onClick={() => setShowTagForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+                  </div>
+                  <div className="p-4 flex items-center gap-3">
+                    <Input value={tagForm.name} onChange={(e) => setTagForm({ name: e.target.value })} placeholder="Tag Name *" className="h-9 text-xs flex-1" />
+                    <Button onClick={handleCreateTag} size="sm" className="tracking-wider uppercase text-xs">Create</Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowTagForm(false)}>Cancel</Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!showTagForm && (
+              <Button variant="outline" onClick={() => setShowTagForm(true)} className="tracking-wider uppercase text-xs">
+                <Plus className="mr-2 h-4 w-4" /> Add Tag
+              </Button>
+            )}
+            <div className="border rounded-sm overflow-hidden">
+              <table className="w-full">
+                <thead><tr className="bg-cream border-b">
+                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Tag</th>
+                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
+                </tr></thead>
+                <tbody>{tags.map((tag) => (
+                  <tr key={tag.id} className="border-b hover:bg-cream/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <Badge variant="secondary" className="text-xs">{tag.name}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{tag._count.products}</Badge></td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => handleDeleteTag(tag.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))}</tbody>
               </table>
