@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, adminUnauthorized } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
   try {
     const body = await request.json();
     const { name, slug, description, order } = body;

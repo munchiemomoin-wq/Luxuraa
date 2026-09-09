@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, adminUnauthorized } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
   try {
     const body = await request.json();
     const {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
   try {
     const body = await request.json();
     const { id, ...updateData } = body;
@@ -128,7 +128,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

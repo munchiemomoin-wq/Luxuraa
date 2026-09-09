@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 
 const ADMIN_TOKEN = 'luxuraa_admin_session';
 
-export function requireAdmin() {
-  const cookieStore = cookies();
+export async function requireAdmin() {
+  const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_TOKEN);
 
   if (!token || token.value !== 'authenticated') {

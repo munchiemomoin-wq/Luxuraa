@@ -18,7 +18,7 @@ function getCloudinaryFormat(mimeType: string): string {
 }
 
 export async function POST(request: Request) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
 
   // Check if Cloudinary is configured
   if (!process.env.CLOUDINARY_CLOUD_NAME) {
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
 
 // Delete an image from Cloudinary
 export async function DELETE(request: Request) {
-  if (!requireAdmin()) return adminUnauthorized();
+  if (!(await requireAdmin())) return adminUnauthorized();
 
   try {
     const { searchParams } = new URL(request.url);

@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  /* Vercel deployment - do NOT use output: "standalone" */
   typescript: {
     ignoreBuildErrors: true,
   },
