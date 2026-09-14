@@ -550,6 +550,27 @@ export function AdminPanel() {
     } catch { toast.error('Error deleting category'); }
   };
 
+  const handleCreateCategory = async () => {
+    if (!categoryForm.name.trim()) { toast.error('Category name is required'); return; }
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryForm),
+      });
+      if (res.ok) {
+        toast.success('Category created successfully');
+        const newCategories = await (await fetch('/api/categories')).json();
+        setCategories(newCategories);
+        setCategoryForm({ name: '', description: '', image: '' });
+        setShowCategoryForm(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to create category');
+      }
+    } catch { toast.error('Error creating category'); }
+  };
+
   // ---- Brand form ----
   const [brandForm, setBrandForm] = useState({ name: '', description: '', country: '', foundedYear: '' });
   const [showBrandForm, setShowBrandForm] = useState(false);
