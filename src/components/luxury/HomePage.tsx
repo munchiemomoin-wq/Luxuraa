@@ -108,11 +108,12 @@ export function HomePage() {
             <p className="text-gold text-xs tracking-[0.3em] uppercase mb-3">Explore</p>
             <h3 className="text-2xl sm:text-3xl font-light tracking-wide">Shop by Collection</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {categories.map((cat, index) => {
               const catImages: Record<string, string> = {
                 men: 'https://images.unsplash.com/photo-1617137900204-4b4e3570e8e4?w=600',
                 women: 'https://images.unsplash.com/photo-1483985333961-0f44e643276e?w=600',
+                unisex: 'https://images.unsplash.com/photo-1441984904996-e2b8e4b3e0e4?w=600',
               };
               const img = cat.image || catImages[cat.slug] || 'https://images.unsplash.com/photo-1441984904996-e2b8e4b3e0e4?w=600';
               return (
