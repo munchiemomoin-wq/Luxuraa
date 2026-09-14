@@ -127,10 +127,11 @@ export function ProductDetailPage() {
     return true;
   });
 
-  // Reset image index when color changes (so we start from the variant image)
-  useEffect(() => {
+  // Handler: select color and reset image index to show variant image first
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color);
     setSelectedImageIndex(0);
-  }, [selectedColor]);
+  };
 
   const hasDiscount = productDetail.compareAtPrice && productDetail.compareAtPrice > productDetail.price;
   const discount = hasDiscount
@@ -314,7 +315,7 @@ export function ProductDetailPage() {
                     return (
                       <button
                         key={color}
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => handleColorSelect(color)}
                         className={`flex items-center gap-2 px-4 py-2 text-xs tracking-wider uppercase border transition-all ${
                           selectedColor === color
                             ? 'border-gold bg-gold/10 text-gold'
