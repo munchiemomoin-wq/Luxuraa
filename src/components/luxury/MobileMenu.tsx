@@ -49,23 +49,41 @@ export function MobileMenu() {
             Shop All
           </Button>
 
-          {/* Categories */}
+          {/* Categories - Men / Women with subcategories */}
           <div className="pt-4 pb-2">
-            <p className="text-xs tracking-[0.2em] uppercase text-warm-gray mb-2 px-4">Categories</p>
             {categories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant="ghost"
-                className="w-full justify-between text-sm tracking-wider uppercase py-2.5 px-4"
-                onClick={() => {
-                  setFilter('categoryId', cat.id);
-                  navigateTo('shop');
-                  toggleMobileMenu();
-                }}
-              >
-                {cat.name}
-                <ChevronRight className="h-3 w-3 opacity-40" />
-              </Button>
+              <div key={cat.id}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between text-sm tracking-wider uppercase py-2.5 px-4"
+                  onClick={() => {
+                    setFilter('categoryId', cat.id);
+                    setFilter('subCategoryId', '');
+                    navigateTo('category', cat.id);
+                    toggleMobileMenu();
+                  }}
+                >
+                  {cat.name}
+                  <ChevronRight className="h-3 w-3 opacity-40" />
+                </Button>
+                <div className="pl-6 space-y-0.5">
+                  {cat.subCategories.map((sub) => (
+                    <Button
+                      key={sub.id}
+                      variant="ghost"
+                      className="w-full justify-start text-xs tracking-wider uppercase py-1.5 px-4 text-warm-gray"
+                      onClick={() => {
+                        setFilter('categoryId', cat.id);
+                        setFilter('subCategoryId', sub.id);
+                        navigateTo('category', cat.id);
+                        toggleMobileMenu();
+                      }}
+                    >
+                      {sub.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 

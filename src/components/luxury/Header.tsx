@@ -20,11 +20,12 @@ export function Header() {
     isAdmin,
     loginAdmin,
     logoutAdmin,
+    selectedCategoryId,
   } = useStore();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [hoveredCatId, setHoveredCatId] = useState<string | null>(null);
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -90,60 +91,63 @@ export function Header() {
                 Home
               </button>
 
-              <div
-                className="relative"
-                onMouseEnter={() => setIsCategoriesOpen(true)}
-                onMouseLeave={() => setIsCategoriesOpen(false)}
-              >
-                <button
-                  onClick={() => navigateTo('shop')}
-                  className={`flex items-center gap-1 text-sm tracking-wider uppercase transition-colors hover:text-gold ${
-                    currentView === 'shop' ? 'text-foreground font-medium' : 'text-warm-gray'
-                  }`}
+              {/* Men / Women dropdowns from categories */}
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="relative"
+                  onMouseEnter={() => setHoveredCatId(cat.id)}
+                  onMouseLeave={() => setHoveredCatId(null)}
                 >
-                  Shop
-                  <ChevronDown className="h-3 w-3" />
-                </button>
+                  <button
+                    onClick={() => {
+                      useStore.getState().setFilter('categoryId', cat.id);
+                      navigateTo('category', cat.id);
+                    }}
+                    className={`flex items-center gap-1 text-sm tracking-wider uppercase transition-colors hover:text-gold ${
+                      currentView === 'category' && selectedCategoryId === cat.id ? 'text-foreground font-medium' : 'text-warm-gray'
+                    }`}
+                  >
+                    {cat.name}
+                    {cat.subCategories.length > 0 && <ChevronDown className="h-3 w-3" />}
+                  </button>
 
-                {isCategoriesOpen && (
-                  <div className="absolute top-full left-0 pt-2 w-[600px]">
-                    <div className="bg-background border shadow-lg rounded-sm p-6 grid grid-cols-3 gap-6">
-                      {categories.map((cat) => (
-                        <div key={cat.id}>
+                  {hoveredCatId === cat.id && cat.subCategories.length > 0 && (
+                    <div className="absolute top-full left-0 pt-2 w-48">
+                      <div className="bg-background border shadow-lg rounded-sm p-4 space-y-2">
+                        <button
+                          onClick={() => {
+                            useStore.getState().setFilter('categoryId', cat.id);
+                            useStore.getState().setFilter('subCategoryId', '');
+                            navigateTo('category', cat.id);
+                            setHoveredCatId(null);
+                          }}
+                          className="block text-xs font-medium tracking-wider uppercase hover:text-gold transition-colors"
+                        >
+                          All {cat.name}
+                        </button>
+                        <div className="border-b border-border my-2" />
+                        {cat.subCategories.map((sub) => (
                           <button
+                            key={sub.id}
                             onClick={() => {
                               useStore.getState().setFilter('categoryId', cat.id);
-                              navigateTo('shop');
-                              setIsCategoriesOpen(false);
+                              useStore.getState().setFilter('subCategoryId', sub.id);
+                              navigateTo('category', cat.id);
+                              setHoveredCatId(null);
                             }}
-                            className="text-sm font-medium tracking-wider uppercase hover:text-gold transition-colors mb-2"
+                            className="block text-xs text-warm-gray hover:text-gold transition-colors tracking-wide"
                           >
-                            {cat.name}
+                            {sub.name}
                           </button>
-                          <div className="space-y-1">
-                            {cat.subCategories.map((sub) => (
-                              <button
-                                key={sub.id}
-                                onClick={() => {
-                                  useStore.getState().setFilter('categoryId', cat.id);
-                                  useStore.getState().setFilter('subCategoryId', sub.id);
-                                  navigateTo('shop');
-                                  setIsCategoriesOpen(false);
-                                }}
-                                className="block text-xs text-warm-gray hover:text-gold transition-colors tracking-wide"
-                              >
-                                {sub.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ))}
 
-              {brands.slice(0, 4).map((brand) => (
+              {brands.slice(0, 3).map((brand) => (
                 <button
                   key={brand.id}
                   onClick={() => navigateTo('brand', brand.id)}

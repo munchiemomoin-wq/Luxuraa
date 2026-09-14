@@ -78,6 +78,22 @@ export function Footer() {
                   >
                     {cat.name}
                   </button>
+                  <ul className="pl-3 mt-1 space-y-1">
+                    {cat.subCategories.slice(0, 4).map((sub) => (
+                      <li key={sub.id}>
+                        <button
+                          onClick={() => {
+                            setFilter('categoryId', cat.id);
+                            setFilter('subCategoryId', sub.id);
+                            navigateTo('category', cat.id);
+                          }}
+                          className="text-white/25 text-[10px] tracking-wider uppercase hover:text-white transition-colors"
+                        >
+                          {sub.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
               <li>

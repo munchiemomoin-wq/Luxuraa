@@ -1,0 +1,961 @@
+     1→import { PrismaClient } from '@prisma/client';
+     2→
+     3→const prisma = new PrismaClient();
+     4→
+     5→async function seed() {
+     6→  console.log('🌱 Seeding luxury e-commerce database...');
+     7→
+     8→  // Clear existing data
+     9→  await prisma.productTag.deleteMany();
+    10→  await prisma.productAttribute.deleteMany();
+    11→  await prisma.productVariant.deleteMany();
+    12→  await prisma.product.deleteMany();
+    13→  await prisma.subCategory.deleteMany();
+    14→  await prisma.tag.deleteMany();
+    15→  await prisma.category.deleteMany();
+    16→  await prisma.brand.deleteMany();
+    17→
+    18→  // Brands
+    19→  const brands = await Promise.all([
+    20→    prisma.brand.create({
+    21→      data: {
+    22→        name: 'Gucci',
+    23→        slug: 'gucci',
+    24→        description: 'Italian luxury fashion house founded in Florence, renowned for its bold and eclectic designs that blend modernity with traditional craftsmanship.',
+    25→        country: 'Italy',
+    26→        foundedYear: 1921,
+    27→        logo: 'G',
+    28→      },
+    29→    }),
+    30→    prisma.brand.create({
+    31→      data: {
+    32→        name: 'Louis Vuitton',
+    33→        slug: 'louis-vuitton',
+    34→        description: 'French fashion house and luxury retail company founded in 1854, known for its iconic monogram and heritage travel trunks.',
+    35→        country: 'France',
+    36→        foundedYear: 1854,
+    37→        logo: 'LV',
+    38→      },
+    39→    }),
+    40→    prisma.brand.create({
+    41→      data: {
+    42→        name: 'Prada',
+    43→        slug: 'prada',
+    44→        description: 'Italian luxury fashion house specializing in leather handbags, travel accessories, shoes, ready-to-wear, and perfumes.',
+    45→        country: 'Italy',
+    46→        foundedYear: 1913,
+    47→        logo: 'P',
+    48→      },
+    49→    }),
+    50→    prisma.brand.create({
+    51→      data: {
+    52→        name: 'Hermès',
+    53→        slug: 'hermes',
+    54→        description: 'French high fashion luxury goods manufacturer established in 1837, specializing in leather, lifestyle accessories, and perfumery.',
+    55→        country: 'France',
+    56→        foundedYear: 1837,
+    57→        logo: 'H',
+    58→      },
+    59→    }),
+    60→    prisma.brand.create({
+    61→      data: {
+    62→        name: 'Chanel',
+    63→        slug: 'chanel',
+    64→        description: 'French luxury fashion house founded by Coco Chanel, known for its timeless elegance and iconic tweed designs.',
+    65→        country: 'France',
+    66→        foundedYear: 1910,
+    67→        logo: 'C',
+    68→      },
+    69→    }),
+    70→    prisma.brand.create({
+    71→      data: {
+    72→        name: 'Dior',
+    73→        slug: 'dior',
+    74→        description: 'French luxury goods company founded in 1946, known for its haute couture, ready-to-wear, and leather goods.',
+    75→        country: 'France',
+    76→        foundedYear: 1946,
+    77→        logo: 'D',
+    78→      },
+    79→    }),
+    80→    prisma.brand.create({
+    81→      data: {
+    82→        name: 'Balenciaga',
+    83→        slug: 'balenciaga',
+    84→        description: 'Spanish luxury fashion house known for its avant-garde designs and architectural silhouettes.',
+    85→        country: 'Spain',
+    86→        foundedYear: 1919,
+    87→        logo: 'B',
+    88→      },
+    89→    }),
+    90→    prisma.brand.create({
+    91→      data: {
+    92→        name: 'Versace',
+    93→        slug: 'versace',
+    94→        description: 'Italian luxury fashion company known for its bold prints and glamorous designs.',
+    95→        country: 'Italy',
+    96→        foundedYear: 1978,
+    97→        logo: 'V',
+    98→      },
+    99→    }),
+   100→  ]);
+   101→
+   102→  // Categories
+   103→  const categories = await Promise.all([
+   104→    prisma.category.create({
+   105→      data: {
+   106→        name: 'Shoes',
+   107→        slug: 'shoes',
+   108→        description: 'Luxury footwear from the world\'s finest fashion houses',
+   109→        order: 1,
+   110→      },
+   111→    }),
+   112→    prisma.category.create({
+   113→      data: {
+   114→        name: 'Bags',
+   115→        slug: 'bags',
+   116→        description: 'Iconic handbags and luggage from prestigious luxury brands',
+   117→        order: 2,
+   118→      },
+   119→    }),
+   120→    prisma.category.create({
+   121→      data: {
+   122→        name: 'Belts',
+   123→        slug: 'belts',
+   124→        description: 'Premium leather belts crafted with exceptional attention to detail',
+   125→        order: 3,
+   126→      },
+   127→    }),
+   128→    prisma.category.create({
+   129→      data: {
+   130→        name: 'Wallets',
+   131→        slug: 'wallets',
+   132→        description: 'Fine leather wallets and cardholders from luxury ateliers',
+   133→        order: 4,
+   134→      },
+   135→    }),
+   136→    prisma.category.create({
+   137→      data: {
+   138→        name: 'Accessories',
+   139→        slug: 'accessories',
+   140→        description: 'Luxury accessories including scarves, sunglasses, and jewelry',
+   141→        order: 5,
+   142→      },
+   143→    }),
+   144→    prisma.category.create({
+   145→      data: {
+   146→        name: 'Ready-to-Wear',
+   147→        slug: 'ready-to-wear',
+   148→        description: 'Luxury clothing collections from the world\'s top designers',
+   149→        order: 6,
+   150→      },
+   151→    }),
+   152→  ]);
+   153→
+   154→  // SubCategories
+   155→  const subCategories = await Promise.all([
+   156→    // Shoes subcategories
+   157→    prisma.subCategory.create({ data: { name: 'Sneakers', slug: 'sneakers', categoryId: categories[0].id } }),
+   158→    prisma.subCategory.create({ data: { name: 'Loafers', slug: 'loafers', categoryId: categories[0].id } }),
+   159→    prisma.subCategory.create({ data: { name: 'Boots', slug: 'boots', categoryId: categories[0].id } }),
+   160→    prisma.subCategory.create({ data: { name: 'Heels', slug: 'heels', categoryId: categories[0].id } }),
+   161→    prisma.subCategory.create({ data: { name: 'Sandals', slug: 'sandals', categoryId: categories[0].id } }),
+   162→    // Bags subcategories
+   163→    prisma.subCategory.create({ data: { name: 'Tote Bags', slug: 'tote-bags', categoryId: categories[1].id } }),
+   164→    prisma.subCategory.create({ data: { name: 'Crossbody Bags', slug: 'crossbody-bags', categoryId: categories[1].id } }),
+   165→    prisma.subCategory.create({ data: { name: 'Clutches', slug: 'clutches', categoryId: categories[1].id } }),
+   166→    prisma.subCategory.create({ data: { name: 'Backpacks', slug: 'backpacks', categoryId: categories[1].id } }),
+   167→    // Wallets subcategories
+   168→    prisma.subCategory.create({ data: { name: 'Cardholders', slug: 'cardholders', categoryId: categories[3].id } }),
+   169→    prisma.subCategory.create({ data: { name: 'Bifold Wallets', slug: 'bifold-wallets', categoryId: categories[3].id } }),
+   170→    prisma.subCategory.create({ data: { name: 'Long Wallets', slug: 'long-wallets', categoryId: categories[3].id } }),
+   171→    // Accessories subcategories
+   172→    prisma.subCategory.create({ data: { name: 'Scarves', slug: 'scarves', categoryId: categories[4].id } }),
+   173→    prisma.subCategory.create({ data: { name: 'Sunglasses', slug: 'sunglasses', categoryId: categories[4].id } }),
+   174→    prisma.subCategory.create({ data: { name: 'Jewelry', slug: 'jewelry', categoryId: categories[4].id } }),
+   175→    prisma.subCategory.create({ data: { name: 'Watches', slug: 'watches', categoryId: categories[4].id } }),
+   176→    // Ready-to-Wear subcategories
+   177→    prisma.subCategory.create({ data: { name: 'Jackets', slug: 'jackets', categoryId: categories[5].id } }),
+   178→    prisma.subCategory.create({ data: { name: 'Dresses', slug: 'dresses', categoryId: categories[5].id } }),
+   179→    prisma.subCategory.create({ data: { name: 'Shirts', slug: 'shirts', categoryId: categories[5].id } }),
+   180→  ]);
+   181→
+   182→  // Tags
+   183→  const tags = await Promise.all([
+   184→    prisma.tag.create({ data: { name: 'New Arrival', slug: 'new-arrival' } }),
+   185→    prisma.tag.create({ data: { name: 'Bestseller', slug: 'bestseller' } }),
+   186→    prisma.tag.create({ data: { name: 'Limited Edition', slug: 'limited-edition' } }),
+   187→    prisma.tag.create({ data: { name: 'Classic', slug: 'classic' } }),
+   188→    prisma.tag.create({ data: { name: 'Signature', slug: 'signature' } }),
+   189→    prisma.tag.create({ data: { name: 'Monogram', slug: 'monogram' } }),
+   190→    prisma.tag.create({ data: { name: 'Leather', slug: 'leather' } }),
+   191→    prisma.tag.create({ data: { name: 'Handmade', slug: 'handmade' } }),
+   192→    prisma.tag.create({ data: { name: 'Exclusive', slug: 'exclusive' } }),
+   193→    prisma.tag.create({ data: { name: 'Unisex', slug: 'unisex' } }),
+   194→  ]);
+   195→
+   196→  // Products
+   197→  const products = [
+   198→    // Gucci Products
+   199→    {
+   200→      name: 'Gucci Horsebit 1955 Loafer',
+   201→      slug: 'gucci-horsebit-1955-loafer',
+   202→      description: 'The iconic Horsebit 1955 loafer is reimagined in smooth black leather. First introduced in 1955, the refined hardware detail on the upper is a testament to the House\'s rich equestrian heritage. This timeless silhouette continues to define elegance with its sleek profile and impeccable Italian craftsmanship.',
+   203→      price: 980,
+   204→      compareAtPrice: null,
+   205→      brandId: brands[0].id,
+   206→      categoryId: categories[0].id,
+   207→      subCategoryId: subCategories[1].id,
+   208→      featured: true,
+   209→      bestseller: true,
+   210→      newArrival: false,
+   211→      images: '["https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=800","https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800","https://images.unsplash.com/photo-1595341888016-a392ef81b7de?w=800"]',
+   212→      variants: [
+   213→        { name: 'Black / 40', color: 'Black', size: '40', price: 980, stock: 5 },
+   214→        { name: 'Black / 41', color: 'Black', size: '41', price: 980, stock: 3 },
+   215→        { name: 'Black / 42', color: 'Black', size: '42', price: 980, stock: 7 },
+   216→        { name: 'Brown / 40', color: 'Brown', size: '40', price: 980, stock: 2 },
+   217→        { name: 'Brown / 41', color: 'Brown', size: '41', price: 980, stock: 4 },
+   218→      ],
+   219→      attributes: [
+   220→        { name: 'Material', value: 'Smooth calfskin leather' },
+   221→        { name: 'Sole', value: 'Leather sole with rubber heel' },
+   222→        { name: 'Origin', value: 'Made in Italy' },
+   223→        { name: 'Style', value: 'Slip-on loafer' },
+   224→      ],
+   225→      tags: ['Classic', 'Signature', 'Handmade'],
+   226→    },
+   227→    {
+   228→      name: 'Gucci Marmont Mini Bag',
+   229→      slug: 'gucci-marmont-mini-bag',
+   230→      description: 'The Marmont Mini bag is crafted from soft matelassé chevron leather and features the iconic Double G hardware. With its compact silhouette and versatile chain strap that can be worn doubled or as a single long strap, this bag seamlessly transitions from day to evening.',
+   231→      price: 2450,
+   232→      compareAtPrice: 2890,
+   233→      brandId: brands[0].id,
+   234→      categoryId: categories[1].id,
+   235→      subCategoryId: subCategories[6].id,
+   236→      featured: true,
+   237→      bestseller: true,
+   238→      newArrival: false,
+   239→      images: '["https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800","https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800","https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800"]',
+   240→      variants: [
+   241→        { name: 'Black', color: 'Black', price: 2450, stock: 3 },
+   242→        { name: 'Beige', color: 'Beige', price: 2450, stock: 5 },
+   243→        { name: 'Pink', color: 'Pink', price: 2600, stock: 2 },
+   244→      ],
+   245→      attributes: [
+   246→        { name: 'Material', value: 'Matelassé chevron leather' },
+   247→        { name: 'Hardware', value: 'Antiqued gold-tone Double G' },
+   248→        { name: 'Dimensions', value: 'W23cm × H14cm × D6cm' },
+   249→        { name: 'Origin', value: 'Made in Italy' },
+   250→      ],
+   251→      tags: ['Bestseller', 'Signature', 'Leather'],
+   252→    },
+   253→    {
+   254→      name: 'Gucci GG Supreme Belt',
+   255→      slug: 'gucci-gg-supreme-belt',
+   256→      description: 'A defining piece from the House\'s collection, this belt features the iconic GG Supreme canvas—a material introduced in the 1970s—paired with the Interlocking G buckle. The combination of the legendary monogram pattern and refined hardware creates an unmistakably Gucci accessory.',
+   257→      price: 490,
+   258→      compareAtPrice: null,
+   259→      brandId: brands[0].id,
+   260→      categoryId: categories[2].id,
+   261→      subCategoryId: null,
+   262→      featured: false,
+   263→      bestseller: true,
+   264→      newArrival: false,
+   265→      images: '["https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=800","https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800"]',
+   266→      variants: [
+   267→        { name: '85cm', size: '85cm', price: 490, stock: 10 },
+   268→        { name: '90cm', size: '90cm', price: 490, stock: 8 },
+   269→        { name: '95cm', size: '95cm', price: 490, stock: 6 },
+   270→        { name: '100cm', size: '100cm', price: 490, stock: 4 },
+   271→      ],
+   272→      attributes: [
+   273→        { name: 'Material', value: 'GG Supreme canvas with leather trim' },
+   274→        { name: 'Buckle', value: 'Antiqued silver-tone Interlocking G' },
+   275→        { name: 'Width', value: '3.5cm' },
+   276→        { name: 'Origin', value: 'Made in Italy' },
+   277→      ],
+   278→      tags: ['Classic', 'Monogram', 'Unisex'],
+   279→    },
+   280→    {
+   281→      name: 'Gucci Dionysus GG Supreme Sneaker',
+   282→      slug: 'gucci-dionysus-sneaker',
+   283→      description: 'The Dionysus sneaker merges the iconic GG Supreme pattern with modern streetwear sensibility. Featuring a chunky rubber sole and the House\'s recognizable bee motif, this sneaker bridges the gap between heritage luxury and contemporary fashion.',
+   284→      price: 890,
+   285→      compareAtPrice: null,
+   286→      brandId: brands[0].id,
+   287→      categoryId: categories[0].id,
+   288→      subCategoryId: subCategories[0].id,
+   289→      featured: true,
+   290→      bestseller: false,
+   291→      newArrival: true,
+   292→      images: '["https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=800","https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800","https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800"]',
+   293→      variants: [
+   294→        { name: 'White/GG / 40', color: 'White/GG', size: '40', price: 890, stock: 4 },
+   295→        { name: 'White/GG / 42', color: 'White/GG', size: '42', price: 890, stock: 3 },
+   296→        { name: 'White/GG / 44', color: 'White/GG', size: '44', price: 890, stock: 2 },
+   297→        { name: 'Black/GG / 41', color: 'Black/GG', size: '41', price: 890, stock: 5 },
+   298→        { name: 'Black/GG / 43', color: 'Black/GG', size: '43', price: 890, stock: 3 },
+   299→      ],
+   300→      attributes: [
+   301→        { name: 'Material', value: 'GG Supreme canvas with leather details' },
+   302→        { name: 'Sole', value: 'Rubber chunky sole' },
+   303→        { name: 'Details', value: 'Bee motif embroidery' },
+   304→        { name: 'Origin', value: 'Made in Italy' },
+   305→      ],
+   306→      tags: ['New Arrival', 'Monogram', 'Unisex'],
+   307→    },
+   308→    {
+   309→      name: 'Gucci Ophidia Wallet',
+   310→      slug: 'gucci-ophidia-wallet',
+   311→      description: 'Part of the Ophidia line, this bi-fold wallet showcases the House\'s rich heritage through the combination of the iconic GG Supreme canvas and the classic Diamante pattern. The sleek design includes multiple card slots and a bill compartment for everyday practicality.',
+   312→      price: 520,
+   313→      compareAtPrice: null,
+   314→      brandId: brands[0].id,
+   315→      categoryId: categories[3].id,
+   316→      subCategoryId: subCategories[9].id,
+   317→      featured: false,
+   318→      bestseller: false,
+   319→      newArrival: false,
+   320→      images: '["https://images.unsplash.com/photo-1627123424574-724758594e93?w=800","https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=800"]',
+   321→      variants: [
+   322→        { name: 'Beige/Brown', color: 'Beige/Brown', price: 520, stock: 6 },
+   323→        { name: 'Black', color: 'Black', price: 520, stock: 8 },
+   324→      ],
+   325→      attributes: [
+   326→        { name: 'Material', value: 'GG Supreme canvas with suede trim' },
+   327→        { name: 'Closure', value: 'Zip-top closure' },
+   328→        { name: 'Card Slots', value: '12 card slots, 3 bill compartments' },
+   329→        { name: 'Origin', value: 'Made in Italy' },
+   330→      ],
+   331→      tags: ['Classic', 'Monogram', 'Leather'],
+   332→    },
+   333→
+   334→    // Louis Vuitton Products
+   335→    {
+   336→      name: 'Louis Vuitton Neverfull MM',
+   337→      slug: 'louis-vuitton-neverfull-mm',
+   338→      description: 'The Neverfull MM is one of Louis Vuitton\'s most iconic bags, combining timeless elegance with everyday functionality. Crafted from the legendary Monogram canvas with natural cowhide trim, it features generous interior space with a secure zip closure. The side laces allow the bag\'s shape to be adjusted for everyday needs.',
+   339→      price: 1790,
+   340→      compareAtPrice: null,
+   341→      brandId: brands[1].id,
+   342→      categoryId: categories[1].id,
+   343→      subCategoryId: subCategories[5].id,
+   344→      featured: true,
+   345→      bestseller: true,
+   346→      newArrival: false,
+   347→      images: '["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800","https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800","https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800"]',
+   348→      variants: [
+   349→        { name: 'Monogram', color: 'Monogram', price: 1790, stock: 5 },
+   350→        { name: 'Damier Ebene', color: 'Damier Ebene', price: 1790, stock: 4 },
+   351→        { name: 'Monogram Reverse', color: 'Monogram Reverse', price: 1850, stock: 3 },
+   352→      ],
+   353→      attributes: [
+   354→        { name: 'Material', value: 'Monogram canvas with natural cowhide trim' },
+   355→        { name: 'Hardware', value: 'Gold-color metallic pieces' },
+   356→        { name: 'Dimensions', value: 'W32cm × H29cm × D17cm' },
+   357→        { name: 'Origin', value: 'Made in France' },
+   358→      ],
+   359→      tags: ['Bestseller', 'Classic', 'Monogram'],
+   360→    },
+   361→    {
+   362→      name: 'Louis Vuitton Speedy Bandoulière 25',
+   363→      slug: 'louis-vuitton-speedy-25',
+   364→      description: 'Reinvented with a removable strap and zipper, the Speedy Bandoulière 25 is both modern and practical. The iconic silhouette in Monogram canvas is instantly recognizable, while the new features bring fresh functionality to this timeless design.',
+   365→      price: 1360,
+   366→      compareAtPrice: 1520,
+   367→      brandId: brands[1].id,
+   368→      categoryId: categories[1].id,
+   369→      subCategoryId: subCategories[6].id,
+   370→      featured: true,
+   371→      bestseller: true,
+   372→      newArrival: false,
+   373→      images: '["https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800","https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800"]',
+   374→      variants: [
+   375→        { name: 'Monogram', color: 'Monogram', price: 1360, stock: 6 },
+   376→        { name: 'Damier Azur', color: 'Damier Azur', price: 1360, stock: 4 },
+   377→        { name: 'Black Monogram', color: 'Black Monogram', price: 1420, stock: 2 },
+   378→      ],
+   379→      attributes: [
+   380→        { name: 'Material', value: 'Monogram canvas with natural cowhide trim' },
+   381→        { name: 'Hardware', value: 'Gold-color metallic pieces' },
+   382→        { name: 'Dimensions', value: 'W25cm × H19cm × D13cm' },
+   383→        { name: 'Strap', value: 'Removable, adjustable strap' },
+   384→      ],
+   385→      tags: ['Bestseller', 'Classic', 'Monogram'],
+   386→    },
+   387→    {
+   388→      name: 'Louis Vuitton Run Away Sneaker',
+   389→      slug: 'louis-vuitton-run-away-sneaker',
+   390→      description: 'The Run Away sneaker combines the Maison\'s heritage with a contemporary chunky silhouette. Crafted from premium technical fabric and adorned with the iconic LV Initials, it features an extra-thick rubber sole with a Max cushion for all-day comfort.',
+   391→      price: 1150,
+   392→      compareAtPrice: null,
+   393→      brandId: brands[1].id,
+   394→      categoryId: categories[0].id,
+   395→      subCategoryId: subCategories[0].id,
+   396→      featured: false,
+   397→      bestseller: false,
+   398→      newArrival: true,
+   399→      images: '["https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800","https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800"]',
+   400→      variants: [
+   401→        { name: 'White/Black / 41', color: 'White/Black', size: '41', price: 1150, stock: 3 },
+   402→        { name: 'White/Black / 42', color: 'White/Black', size: '42', price: 1150, stock: 2 },
+   403→        { name: 'White/Black / 43', color: 'White/Black', size: '43', price: 1150, stock: 4 },
+   404→        { name: 'White/Blue / 42', color: 'White/Blue', size: '42', price: 1150, stock: 2 },
+   405→      ],
+   406→      attributes: [
+   407→        { name: 'Material', value: 'Technical fabric with calfskin leather trim' },
+   408→        { name: 'Sole', value: 'Rubber with Max cushion technology' },
+   409→        { name: 'Details', value: 'LV Initials on tongue and side' },
+   410→        { name: 'Origin', value: 'Made in Italy' },
+   411→      ],
+   412→      tags: ['New Arrival', 'Unisex'],
+   413→    },
+   414→    {
+   415→      name: 'Louis Vuitton_favorite-MM',
+   416→      slug: 'louis-vuitton-favorite-mm-belt',
+   417→      description: 'The LV Favorite MM belt combines the iconic LV Initials buckle with a refined calfskin leather strap. Its reversible design offers two distinct looks in one accessory, making it a versatile addition to any luxury wardrobe.',
+   418→      price: 680,
+   419→      compareAtPrice: null,
+   420→      brandId: brands[1].id,
+   421→      categoryId: categories[2].id,
+   422→      subCategoryId: null,
+   423→      featured: false,
+   424→      bestseller: false,
+   425→      newArrival: false,
+   426→      images: '["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800","https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=800"]',
+   427→      variants: [
+   428→        { name: 'Noir / 80cm', color: 'Black', size: '80cm', price: 680, stock: 5 },
+   429→        { name: 'Noir / 85cm', color: 'Black', size: '85cm', price: 680, stock: 7 },
+   430→        { name: 'Noir / 90cm', color: 'Black', size: '90cm', price: 680, stock: 4 },
+   431→      ],
+   432→      attributes: [
+   433→        { name: 'Material', value: 'Calfskin leather, reversible' },
+   434→        { name: 'Buckle', value: 'Louis Vuitton Initials, gold-color' },
+   435→        { name: 'Width', value: '4cm' },
+   436→        { name: 'Origin', value: 'Made in France' },
+   437→      ],
+   438→      tags: ['Classic', 'Signature', 'Leather'],
+   439→    },
+   440→
+   441→    // Prada Products
+   442→    {
+   443→      name: 'Prada Re-Nylon Shoulder Bag',
+   444→      slug: 'prada-re-nylon-shoulder-bag',
+   445→      description: 'Crafted from Re-Nylon—a sustainable fabric regenerated from ocean plastic—this shoulder bag embodies Prada\'s commitment to conscious luxury. The signature triangular plaque adorns the front, while the adjustable strap offers versatile carrying options.',
+   446→      price: 1350,
+   447→      compareAtPrice: null,
+   448→      brandId: brands[2].id,
+   449→      categoryId: categories[1].id,
+   450→      subCategoryId: subCategories[6].id,
+   451→      featured: true,
+   452→      bestseller: false,
+   453→      newArrival: true,
+   454→      images: '["https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800","https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800"]',
+   455→      variants: [
+   456→        { name: 'Black', color: 'Black', price: 1350, stock: 4 },
+   457→        { name: 'Navy', color: 'Navy', price: 1350, stock: 3 },
+   458→        { name: 'Green', color: 'Green', price: 1350, stock: 2 },
+   459→      ],
+   460→      attributes: [
+   461→        { name: 'Material', value: 'Re-Nylon regenerated fabric' },
+   462→        { name: 'Hardware', value: 'Saffiano leather triangle plaque' },
+   463→        { name: 'Dimensions', value: 'W25cm × H18cm × D10cm' },
+   464→        { name: 'Origin', value: 'Made in Italy' },
+   465→      ],
+   466→      tags: ['New Arrival', 'Exclusive'],
+   467→    },
+   468→    {
+   469→      name: 'Prada Chocolate Brown Leather Loafers',
+   470→      slug: 'prada-chocolate-brown-leather-loafers',
+   471→      description: 'These Prada loafers exemplify understated luxury with their smooth chocolate brown leather construction and sleek silhouette. The refined penny strap detail and stacked leather heel add a touch of sophistication to any ensemble.',
+   472→      price: 790,
+   473→      compareAtPrice: null,
+   474→      brandId: brands[2].id,
+   475→      categoryId: categories[0].id,
+   476→      subCategoryId: subCategories[1].id,
+   477→      featured: false,
+   478→      bestseller: true,
+   479→      newArrival: false,
+   480→      images: '["https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=800","https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800"]',
+   481→      variants: [
+   482→        { name: 'Brown / 40', color: 'Brown', size: '40', price: 790, stock: 5 },
+   483→        { name: 'Brown / 41', color: 'Brown', size: '41', price: 790, stock: 3 },
+   484→        { name: 'Brown / 42', color: 'Brown', size: '42', price: 790, stock: 6 },
+   485→        { name: 'Black / 41', color: 'Black', size: '41', price: 790, stock: 4 },
+   486→      ],
+   487→      attributes: [
+   488→        { name: 'Material', value: 'Full-grain calfskin leather' },
+   489→        { name: 'Sole', value: 'Leather sole with stacked heel' },
+   490→        { name: 'Details', value: 'Penny strap with metal detail' },
+   491→        { name: 'Origin', value: 'Made in Italy' },
+   492→      ],
+   493→      tags: ['Classic', 'Handmade', 'Leather'],
+   494→    },
+   495→    {
+   496→      name: 'Prada Saffiano Leather Wallet',
+   497→      slug: 'prada-saffiano-leather-wallet',
+   498→      description: 'Crafted from Prada\'s signature Saffiano leather, this bifold wallet combines durability with refined elegance. The distinctive cross-hatch texture and clean lines showcase the brand\'s minimalist aesthetic, while the interior offers ample storage.',
+   499→      price: 450,
+   500→      compareAtPrice: null,
+   501→      brandId: brands[2].id,
+   502→      categoryId: categories[3].id,
+   503→      subCategoryId: subCategories[9].id,
+   504→      featured: false,
+   505→      bestseller: false,
+   506→      newArrival: false,
+   507→      images: '["https://images.unsplash.com/photo-1627123424574-724758594e93?w=800","https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=800"]',
+   508→      variants: [
+   509→        { name: 'Black', color: 'Black', price: 450, stock: 8 },
+   510→        { name: 'Navy', color: 'Navy', price: 450, stock: 5 },
+   511→        { name: 'Bordeaux', color: 'Bordeaux', price: 450, stock: 3 },
+   512→      ],
+   513→      attributes: [
+   514→        { name: 'Material', value: 'Saffiano leather' },
+   515→        { name: 'Closure', value: 'Snap closure' },
+   516→        { name: 'Card Slots', value: '8 card slots, 2 bill compartments' },
+   517→        { name: 'Origin', value: 'Made in Italy' },
+   518→      ],
+   519→      tags: ['Classic', 'Leather', 'Handmade'],
+   520→    },
+   521→
+   522→    // Hermès Products
+   523→    {
+   524→      name: 'Hermès Birkin 30 Togo',
+   525→      slug: 'hermes-birkin-30-togo',
+   526→      description: 'The Birkin 30 in Togo leather represents the pinnacle of luxury craftsmanship. Hand-stitched by a single artisan using the traditional saddle-stitch technique, each bag requires approximately 18 hours of meticulous work. The Togo leather—known for its fine grain and natural pebbled texture—develops a beautiful patina over time.',
+   527→      price: 12500,
+   528→      compareAtPrice: null,
+   529→      brandId: brands[3].id,
+   530→      categoryId: categories[1].id,
+   531→      subCategoryId: subCategories[5].id,
+   532→      featured: true,
+   533→      bestseller: true,
+   534→      newArrival: false,
+   535→      images: '["https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800","https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800","https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800"]',
+   536→      variants: [
+   537→        { name: 'Gold', color: 'Gold', price: 12500, stock: 1 },
+   538→        { name: 'Noir', color: 'Black', price: 12500, stock: 1 },
+   539→        { name: 'Etoupe', color: 'Etoupe', price: 12800, stock: 1 },
+   540→      ],
+   541→      attributes: [
+   542→        { name: 'Material', value: 'Togo calfskin leather' },
+   543→        { name: 'Hardware', value: 'Palladium gold hardware' },
+   544→        { name: 'Dimensions', value: 'W30cm × H25cm × D16cm' },
+   545→        { name: 'Craftsmanship', value: 'Hand-stitched saddle stitch' },
+   546→        { name: 'Origin', value: 'Made in France' },
+   547→      ],
+   548→      tags: ['Bestseller', 'Handmade', 'Exclusive', 'Limited Edition'],
+   549→    },
+   550→    {
+   551→      name: 'Hermès Clic H Belt',
+   552→      slug: 'hermes-clic-h-belt',
+   553→      description: 'The iconic Clic H belt features the unmistakable H-shaped buckle in brushed metal, paired with Swift calfskin leather. This legendary accessory has been a symbol of understated luxury since its introduction and remains one of Hermès\' most coveted pieces.',
+   554→      price: 790,
+   555→      compareAtPrice: null,
+   556→      brandId: brands[3].id,
+   557→      categoryId: categories[2].id,
+   558→      subCategoryId: null,
+   559→      featured: false,
+   560→      bestseller: true,
+   561→      newArrival: false,
+   562→      images: '["https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=800","https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800"]',
+   563→      variants: [
+   564→        { name: 'Gold/Black / 80', color: 'Black', size: '80cm', price: 790, stock: 3 },
+   565→        { name: 'Gold/Black / 85', color: 'Black', size: '85cm', price: 790, stock: 4 },
+   566→        { name: 'Gold/Etoupe / 85', color: 'Etoupe', size: '85cm', price: 790, stock: 2 },
+   567→        { name: 'Gold/Orange / 90', color: 'Orange', size: '90cm', price: 790, stock: 2 },
+   568→      ],
+   569→      attributes: [
+   570→        { name: 'Material', value: 'Swift calfskin leather' },
+   571→        { name: 'Buckle', value: 'Brushed metal H buckle' },
+   572→        { name: 'Width', value: '3.2cm' },
+   573→        { name: 'Origin', value: 'Made in France' },
+   574→      ],
+   575→      tags: ['Classic', 'Signature', 'Leather', 'Handmade'],
+   576→    },
+   577→    {
+   578→      name: 'Hermès Kelly Long Wallet',
+   579→      slug: 'hermes-kelly-long-wallet',
+   580→      description: 'Inspired by the iconic Kelly bag, this long wallet features the same distinctive strap closure with a turn-lock. Crafted from Epsom leather with box calfskin trim, it includes multiple card slots and compartments for exceptional organization.',
+   581→      price: 2450,
+   582→      compareAtPrice: null,
+   583→      brandId: brands[3].id,
+   584→      categoryId: categories[3].id,
+   585→      subCategoryId: subCategories[11].id,
+   586→      featured: false,
+   587→      bestseller: false,
+   588→      newArrival: false,
+   589→      images: '["https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=800","https://images.unsplash.com/photo-1627123424574-724758594e93?w=800"]',
+   590→      variants: [
+   591→        { name: 'Gold', color: 'Gold', price: 2450, stock: 2 },
+   592→        { name: 'Noir', color: 'Black', price: 2450, stock: 3 },
+   593→        { name: 'Rose Sakura', color: 'Rose Sakura', price: 2450, stock: 1 },
+   594→      ],
+   595→      attributes: [
+   596→        { name: 'Material', value: 'Epsom calfskin leather with box calfskin trim' },
+   597→        { name: 'Closure', value: 'Kelly strap with turn-lock' },
+   598→        { name: 'Card Slots', value: '12 card slots, 4 compartments' },
+   599→        { name: 'Origin', value: 'Made in France' },
+   600→      ],
+   601→      tags: ['Classic', 'Signature', 'Handmade', 'Leather'],
+   602→    },
+   603→
+   604→    // Chanel Products
+   605→    {
+   606→      name: 'Chanel Classic Flap Medium',
+   607→      slug: 'chanel-classic-flap-medium',
+   608→      description: 'The quintessential Classic Flap bag from Chanel features the iconic diamond-quilted lambskin leather, a woven chain and leather strap, and the signature CC turn-lock closure. First designed by Coco Chanel in February 1955—hence its name "2.55"—this bag has become a timeless symbol of elegance and sophistication.',
+   609→      price: 10800,
+   610→      compareAtPrice: null,
+   611→      brandId: brands[4].id,
+   612→      categoryId: categories[1].id,
+   613→      subCategoryId: subCategories[6].id,
+   614→      featured: true,
+   615→      bestseller: true,
+   616→      newArrival: false,
+   617→      images: '["https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800","https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800","https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800"]',
+   618→      variants: [
+   619→        { name: 'Black Caviar', color: 'Black', material: 'Caviar leather', price: 10800, stock: 1 },
+   620→        { name: 'Black Lambskin', color: 'Black', material: 'Lambskin leather', price: 10500, stock: 2 },
+   621→        { name: 'Beige Lambskin', color: 'Beige', material: 'Lambskin leather', price: 10500, stock: 1 },
+   622→      ],
+   623→      attributes: [
+   624→        { name: 'Material', value: 'Lambskin or Caviar leather' },
+   625→        { name: 'Hardware', value: 'Gold-tone or silver-tone CC' },
+   626→        { name: 'Dimensions', value: 'W25cm × H16cm × D7cm' },
+   627→        { name: 'Strap', value: 'Woven chain and leather, double strap' },
+   628→        { name: 'Origin', value: 'Made in France' },
+   629→      ],
+   630→      tags: ['Bestseller', 'Classic', 'Signature', 'Exclusive'],
+   631→    },
+   632→    {
+   633→      name: 'Chanel Slingback Pumps',
+   634→      slug: 'chanel-slingback-pumps',
+   635→      description: 'The iconic Chanel slingback pump has been reimagined for the modern woman while retaining its classic elegance. The signature two-tone design with the beige toe creates the illusion of longer legs, while the adjustable ankle strap ensures a perfect fit.',
+   636→      price: 950,
+   637→      compareAtPrice: null,
+   638→      brandId: brands[4].id,
+   639→      categoryId: categories[0].id,
+   640→      subCategoryId: subCategories[3].id,
+   641→      featured: false,
+   642→      bestseller: true,
+   643→      newArrival: false,
+   644→      images: '["https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800","https://images.unsplash.com/photo-1595341888016-a392ef81b7de?w=800"]',
+   645→      variants: [
+   646→        { name: 'Beige/Black / 37', color: 'Beige/Black', size: '37', price: 950, stock: 3 },
+   647→        { name: 'Beige/Black / 38', color: 'Beige/Black', size: '38', price: 950, stock: 4 },
+   648→        { name: 'Beige/Black / 39', color: 'Beige/Black', size: '39', price: 950, stock: 2 },
+   649→        { name: 'All Black / 38', color: 'Black', size: '38', price: 950, stock: 3 },
+   650→      ],
+   651→      attributes: [
+   652→        { name: 'Material', value: 'Calfskin leather' },
+   653→        { name: 'Heel', value: '7.5cm covered heel' },
+   654→        { name: 'Details', value: 'Two-tone design, adjustable strap' },
+   655→        { name: 'Origin', value: 'Made in Italy' },
+   656→      ],
+   657→      tags: ['Classic', 'Signature', 'Handmade'],
+   658→    },
+   659→    {
+   660→      name: 'Chanel Wallet on Chain',
+   661→      slug: 'chanel-wallet-on-chain',
+   662→      description: 'The Wallet on Chain (WOC) is one of Chanel\'s most versatile accessories. Featuring the iconic quilted lambskin leather, signature CC turn-lock, and a long chain strap, it can be worn as a crossbody bag during the day or as an evening clutch.',
+   663→      price: 3900,
+   664→      compareAtPrice: null,
+   665→      brandId: brands[4].id,
+   666→      categoryId: categories[1].id,
+   667→      subCategoryId: subCategories[7].id,
+   668→      featured: true,
+   669→      bestseller: true,
+   670→      newArrival: false,
+   671→      images: '["https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800","https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800"]',
+   672→      variants: [
+   673→        { name: 'Black Caviar', color: 'Black', price: 3900, stock: 3 },
+   674→        { name: 'Black Lambskin', color: 'Black', price: 3800, stock: 2 },
+   675→        { name: 'Pink Caviar', color: 'Pink', price: 3900, stock: 1 },
+   676→      ],
+   677→      attributes: [
+   678→        { name: 'Material', value: 'Quilted caviar or lambskin leather' },
+   679→        { name: 'Chain', value: 'Gold-tone or silver-tone chain and leather' },
+   680→        { name: 'Dimensions', value: 'W19cm × H12cm × D3cm' },
+   681→        { name: 'Origin', value: 'Made in France' },
+   682→      ],
+   683→      tags: ['Bestseller', 'Classic', 'Signature'],
+   684→    },
+   685→
+   686→    // Dior Products
+   687→    {
+   688→      name: 'Dior Book Tote',
+   689→      slug: 'dior-book-tote',
+   690→      description: 'The Dior Book Tote has become a modern icon since its debut. Crafted from the signature Dior Oblique canvas, this spacious tote features an ergonomic design with two top handles and a wide opening, making it the perfect companion for both travel and everyday luxury.',
+   691→      price: 3200,
+   692→      compareAtPrice: null,
+   693→      brandId: brands[5].id,
+   694→      categoryId: categories[1].id,
+   695→      subCategoryId: subCategories[5].id,
+   696→      featured: true,
+   697→      bestseller: false,
+   698→      newArrival: true,
+   699→      images: '["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800","https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800"]',
+   700→      variants: [
+   701→        { name: 'Blue Oblique', color: 'Blue Oblique', price: 3200, stock: 3 },
+   702→        { name: 'Black Oblique', color: 'Black', price: 3200, stock: 4 },
+   703→        { name: 'Beige Oblique', color: 'Beige', price: 3200, stock: 2 },
+   704→      ],
+   705→      attributes: [
+   706→        { name: 'Material', value: 'Dior Oblique embroidered canvas' },
+   707→        { name: 'Trim', value: 'Calfskin leather' },
+   708→        { name: 'Dimensions', value: 'W40cm × H30cm × D17cm' },
+   709→        { name: 'Origin', value: 'Made in Italy' },
+   710→      ],
+   711→      tags: ['New Arrival', 'Monogram', 'Unisex'],
+   712→    },
+   713→    {
+   714→      name: 'Dior Walk\'n\'Dior Sneaker',
+   715→      slug: 'dior-walkn-dior-sneaker',
+   716→      description: 'The Walk\'n\'Dior sneaker reimagines the classic Dior Oblique motif in a low-top sneaker silhouette. Combining luxurious materials with athletic influences, it features the signature CD initials on the tongue and a rubber sole with an embossed Dior pattern.',
+   717→      price: 990,
+   718→      compareAtPrice: null,
+   719→      brandId: brands[5].id,
+   720→      categoryId: categories[0].id,
+   721→      subCategoryId: subCategories[0].id,
+   722→      featured: false,
+   723→      bestseller: false,
+   724→      newArrival: true,
+   725→      images: '["https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=800","https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800"]',
+   726→      variants: [
+   727→        { name: 'White/Blue / 41', color: 'White/Blue', size: '41', price: 990, stock: 4 },
+   728→        { name: 'White/Blue / 42', color: 'White/Blue', size: '42', price: 990, stock: 3 },
+   729→        { name: 'White/Blue / 43', color: 'White/Blue', size: '43', price: 990, stock: 2 },
+   730→        { name: 'White/Black / 42', color: 'White/Black', size: '42', price: 990, stock: 3 },
+   731→      ],
+   732→      attributes: [
+   733→        { name: 'Material', value: 'Smooth calfskin leather and Dior Oblique canvas' },
+   734→        { name: 'Sole', value: 'Rubber sole with Dior embossing' },
+   735→        { name: 'Details', value: 'CD initials on tongue' },
+   736→        { name: 'Origin', value: 'Made in Italy' },
+   737→      ],
+   738→      tags: ['New Arrival', 'Monogram', 'Unisex'],
+   739→    },
+   740→    {
+   741→      name: 'Dior 30 Montaigne Belt',
+   742→      slug: 'dior-30-montaigne-belt',
+   743→      description: 'The 30 Montaigne belt pays homage to the historic address of Christian Dior\'s couture house. Featuring the signature CD buckle in a refined gold or silver finish, it is crafted from smooth calfskin leather for a sophisticated and contemporary look.',
+   744→      price: 650,
+   745→      compareAtPrice: null,
+   746→      brandId: brands[5].id,
+   747→      categoryId: categories[2].id,
+   748→      subCategoryId: null,
+   749→      featured: false,
+   750→      bestseller: false,
+   751→      newArrival: false,
+   752→      images: '["https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=800","https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800"]',
+   753→      variants: [
+   754→        { name: 'Black/Gold / 85', color: 'Black', size: '85cm', price: 650, stock: 5 },
+   755→        { name: 'Black/Gold / 90', color: 'Black', size: '90cm', price: 650, stock: 4 },
+   756→        { name: 'Brown/Gold / 85', color: 'Brown', size: '85cm', price: 650, stock: 3 },
+   757→      ],
+   758→      attributes: [
+   759→        { name: 'Material', value: 'Smooth calfskin leather' },
+   760→        { name: 'Buckle', value: 'CD initials, gold or silver-tone' },
+   761→        { name: 'Width', value: '4cm' },
+   762→        { name: 'Origin', value: 'Made in Italy' },
+   763→      ],
+   764→      tags: ['Signature', 'Leather'],
+   765→    },
+   766→
+   767→    // Balenciaga Products
+   768→    {
+   769→      name: 'Balenciaga Track Sneaker',
+   770→      slug: 'balenciaga-track-sneaker',
+   771→      description: 'The Track sneaker is a technical masterpiece from Balenciaga, featuring a complex multi-panel construction with 96 different components. This chunky runner silhouette combines performance-inspired design elements with luxury materials, creating one of the most distinctive sneakers in contemporary fashion.',
+   772→      price: 1090,
+   773→      compareAtPrice: null,
+   774→      brandId: brands[6].id,
+   775→      categoryId: categories[0].id,
+   776→      subCategoryId: subCategories[0].id,
+   777→      featured: true,
+   778→      bestseller: false,
+   779→      newArrival: false,
+   780→      images: '["https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800","https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800"]',
+   781→      variants: [
+   782→        { name: 'Black/White / 42', color: 'Black/White', size: '42', price: 1090, stock: 3 },
+   783→        { name: 'Black/White / 43', color: 'Black/White', size: '43', price: 1090, stock: 2 },
+   784→        { name: 'Black/White / 44', color: 'Black/White', size: '44', price: 1090, stock: 4 },
+   785→        { name: 'Grey/Orange / 43', color: 'Grey/Orange', size: '43', price: 1090, stock: 2 },
+   786→      ],
+   787→      attributes: [
+   788→        { name: 'Material', value: 'Mesh, rubber, and neoprene' },
+   789→        { name: 'Sole', value: 'Rubber with 3D effect' },
+   790→        { name: 'Details', value: '96 components, embroidered branding' },
+   791→        { name: 'Origin', value: 'Made in Italy' },
+   792→      ],
+   793→      tags: ['Exclusive', 'Unisex'],
+   794→    },
+   795→    {
+   796→      name: 'Balenciaga Hourglass Small Bag',
+   797→      slug: 'balenciaga-hourglass-small-bag',
+   798→      description: 'The Hourglass bag is a sculptural masterpiece defined by its curved silhouette inspired by the brand\'s archival designs. The signature B closure and soft lambskin leather create a bag that is both a work of art and a functional everyday accessory.',
+   799→      price: 2150,
+   800→      compareAtPrice: 2400,
+   801→      brandId: brands[6].id,
+   802→      categoryId: categories[1].id,
+   803→      subCategoryId: subCategories[6].id,
+   804→      featured: false,
+   805→      bestseller: false,
+   806→      newArrival: true,
+   807→      images: '["https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800","https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800"]',
+   808→      variants: [
+   809→        { name: 'Black', color: 'Black', price: 2150, stock: 3 },
+   810→        { name: 'White', color: 'White', price: 2150, stock: 2 },
+   811→        { name: 'Red', color: 'Red', price: 2150, stock: 1 },
+   812→      ],
+   813→      attributes: [
+   814→        { name: 'Material', value: 'Quilted lambskin leather' },
+   815→        { name: 'Closure', value: 'Balenciaga B closure in mirrored metal' },
+   816→        { name: 'Dimensions', value: 'W22cm × H16cm × D8cm' },
+   817→        { name: 'Origin', value: 'Made in Italy' },
+   818→      ],
+   819→      tags: ['New Arrival', 'Exclusive', 'Limited Edition'],
+   820→    },
+   821→
+   822→    // Versace Products
+   823→    {
+   824→      name: 'Versace Medusa Biggie Sneaker',
+   825→      slug: 'versace-medusa-biggie-sneaker',
+   826→      description: 'The Medusa Biggie sneaker combines Versace\'s bold aesthetic with modern streetwear elements. The oversized rubber sole provides exceptional comfort, while the Medusa head detailing and Greek key motifs showcase the brand\'s rich mythology-inspired heritage.',
+   827→      price: 895,
+   828→      compareAtPrice: null,
+   829→      brandId: brands[7].id,
+   830→      categoryId: categories[0].id,
+   831→      subCategoryId: subCategories[0].id,
+   832→      featured: false,
+   833→      bestseller: false,
+   834→      newArrival: true,
+   835→      images: '["https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=800","https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800"]',
+   836→      variants: [
+   837→        { name: 'White/Gold / 41', color: 'White/Gold', size: '41', price: 895, stock: 4 },
+   838→        { name: 'White/Gold / 42', color: 'White/Gold', size: '42', price: 895, stock: 3 },
+   839→        { name: 'White/Gold / 43', color: 'White/Gold', size: '43', price: 895, stock: 2 },
+   840→        { name: 'Black/Gold / 42', color: 'Black/Gold', size: '42', price: 895, stock: 3 },
+   841→      ],
+   842→      attributes: [
+   843→        { name: 'Material', value: 'Leather with Medusa details' },
+   844→        { name: 'Sole', value: 'Oversized rubber sole' },
+   845→        { name: 'Details', value: 'Medusa head, Greek key motifs' },
+   846→        { name: 'Origin', value: 'Made in Italy' },
+   847→      ],
+   848→      tags: ['New Arrival', 'Signature', 'Unisex'],
+   849→    },
+   850→    {
+   851→      name: 'Versace La Greca Belt',
+   852→      slug: 'versace-la-greca-belt',
+   853→      description: 'The La Greca belt showcases Versace\'s signature Greek key pattern rendered in premium leather. The bold gold-tone Medusa Palazzo buckle serves as the centerpiece, creating an accessory that embodies the brand\'s glamorous and distinctive aesthetic.',
+   854→      price: 575,
+   855→      compareAtPrice: null,
+   856→      brandId: brands[7].id,
+   857→      categoryId: categories[2].id,
+   858→      subCategoryId: null,
+   859→      featured: false,
+   860→      bestseller: false,
+   861→      newArrival: false,
+   862→      images: '["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800","https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=800"]',
+   863→      variants: [
+   864→        { name: 'Black/Gold / 85', color: 'Black', size: '85cm', price: 575, stock: 5 },
+   865→        { name: 'Black/Gold / 90', color: 'Black', size: '90cm', price: 575, stock: 4 },
+   866→        { name: 'White/Gold / 85', color: 'White', size: '85cm', price: 575, stock: 2 },
+   867→      ],
+   868→      attributes: [
+   869→        { name: 'Material', value: 'Leather with Greek key embossing' },
+   870→        { name: 'Buckle', value: 'Medusa Palazzo, gold-tone' },
+   871→        { name: 'Width', value: '3.5cm' },
+   872→        { name: 'Origin', value: 'Made in Italy' },
+   873→      ],
+   874→      tags: ['Signature', 'Leather'],
+   875→    },
+   876→    {
+   877→      name: 'Versace Barocco Print Silk Scarf',
+   878→      slug: 'versace-barocco-print-silk-scarf',
+   879→      description: 'This luxurious silk scarf features the iconic Barocco print, one of Versace\'s most recognizable patterns. The rich colors and intricate Baroque-inspired design make this scarf a statement piece that elevates any outfit with Italian glamour.',
+   880→      price: 420,
+   881→      compareAtPrice: null,
+   882→      brandId: brands[7].id,
+   883→      categoryId: categories[4].id,
+   884→      subCategoryId: subCategories[12].id,
+   885→      featured: false,
+   886→      bestseller: false,
+   887→      newArrival: false,
+   888→      images: '["https://images.unsplash.com/photo-1601924994987-69e26d50dc64?w=800","https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=800"]',
+   889→      variants: [
+   890→        { name: 'Multi-color', color: 'Multi-color', price: 420, stock: 6 },
+   891→        { name: 'Black/Gold', color: 'Black/Gold', price: 420, stock: 4 },
+   892→      ],
+   893→      attributes: [
+   894→        { name: 'Material', value: '100% silk twill' },
+   895→        { name: 'Dimensions', value: '90cm × 90cm' },
+   896→        { name: 'Details', value: 'Hand-rolled edges' },
+   897→        { name: 'Origin', value: 'Made in Italy' },
+   898→      ],
+   899→      tags: ['Classic', 'Handmade', 'Exclusive'],
+   900→    },
+   901→  ];
+   902→
+   903→  // Create products
+   904→  for (const productData of products) {
+   905→    const { variants, attributes, tags: tagNames, ...productFields } = productData;
+   906→
+   907→    const product = await prisma.product.create({
+   908→      data: productFields,
+   909→    });
+   910→
+   911→    // Create variants
+   912→    for (const variant of variants) {
+   913→      await prisma.productVariant.create({
+   914→        data: {
+   915→          ...variant,
+   916→          productId: product.id,
+   917→        },
+   918→      });
+   919→    }
+   920→
+   921→    // Create attributes
+   922→    for (const attr of attributes) {
+   923→      await prisma.productAttribute.create({
+   924→        data: {
+   925→          ...attr,
+   926→          productId: product.id,
+   927→        },
+   928→      });
+   929→    }
+   930→
+   931→    // Create tags
+   932→    for (const tagName of tagNames) {
+   933→      const tag = tags.find((t) => t.name === tagName);
+   934→      if (tag) {
+   935→        await prisma.productTag.create({
+   936→          data: {
+   937→            productId: product.id,
+   938→            tagId: tag.id,
+   939→          },
+   940→        });
+   941→      }
+   942→    }
+   943→  }
+   944→
+   945→  console.log('✅ Seeding completed successfully!');
+   946→  console.log(`   Brands: ${brands.length}`);
+   947→  console.log(`   Categories: ${categories.length}`);
+   948→  console.log(`   SubCategories: ${subCategories.length}`);
+   949→  console.log(`   Tags: ${tags.length}`);
+   950→  console.log(`   Products: ${products.length}`);
+   951→}
+   952→
+   953→seed()
+   954→  .catch((e) => {
+   955→    console.error('❌ Seeding failed:', e);
+   956→    process.exit(1);
+   957→  })
+   958→  .finally(async () => {
+   959→    await prisma.$disconnect();
+   960→  });
+   961→
