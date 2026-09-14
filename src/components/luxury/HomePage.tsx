@@ -101,68 +101,61 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories - Men & Women */}
+      {/* Categories with Men/Women/Unisex */}
       <section className="py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <p className="text-gold text-xs tracking-[0.3em] uppercase mb-3">Explore</p>
-            <h3 className="text-2xl sm:text-3xl font-light tracking-wide">Shop by Collection</h3>
+            <h3 className="text-2xl sm:text-3xl font-light tracking-wide">Shop by Category</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((cat, index) => {
               const catImages: Record<string, string> = {
-                men: 'https://images.unsplash.com/photo-1617137900204-4b4e3570e8e4?w=600',
-                women: 'https://images.unsplash.com/photo-1483985333961-0f44e643276e?w=600',
-                unisex: 'https://images.unsplash.com/photo-1441984904996-e2b8e4b3e0e4?w=600',
+                shoes: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
+                bags: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400',
+                belts: 'https://images.unsplash.com/photo-1637888368690-4a669a5532e9?w=400',
+                wallets: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400',
+                accessories: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc64?w=400',
+                'ready-to-wear': 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400',
               };
-              const img = cat.image || catImages[cat.slug] || 'https://images.unsplash.com/photo-1441984904996-e2b8e4b3e0e4?w=600';
+              const img = cat.image || catImages[cat.slug] || 'https://images.unsplash.com/photo-1441984904996-e2b8e4b3e0e4?w=400';
               return (
-                <motion.div
+                <motion.button
                   key={cat.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.15 }}
-                  className="group relative overflow-hidden luxury-image-hover"
+                  transition={{ delay: index * 0.08 }}
+                  onClick={() => {
+                    setFilter('categoryId', cat.id);
+                    setFilter('subCategoryId', '');
+                    navigateTo('category', cat.id);
+                  }}
+                  className="group relative aspect-[3/4] overflow-hidden luxury-image-hover"
                 >
-                  <div className="aspect-[16/9] sm:aspect-[2/1]">
-                    <img
-                      src={img}
-                      alt={cat.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute inset-0 border border-white/10 group-hover:border-gold/40 transition-colors" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <p className="text-white text-lg tracking-[0.2em] uppercase font-light">{cat.name}</p>
-                      <p className="text-white/50 text-xs mt-1">{cat._count.products} pieces</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {cat.subCategories.slice(0, 6).map((sub) => (
-                          <button
-                            key={sub.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFilter('categoryId', cat.id);
-                              setFilter('subCategoryId', sub.id);
-                              navigateTo('category', cat.id);
-                            }}
-                            className="text-[10px] text-white/70 hover:text-gold tracking-wider uppercase border border-white/20 hover:border-gold/50 px-2 py-1 transition-colors"
-                          >
-                            {sub.name}
-                          </button>
-                        ))}
-                      </div>
+                  <img src={img} alt={cat.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 border border-white/10 group-hover:border-gold/40 transition-colors" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-xs tracking-[0.2em] uppercase">{cat.name}</p>
+                    <p className="text-white/50 text-[10px] mt-1">{cat._count.products} pieces</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {cat.subCategories.map((sub) => (
+                        <span
+                          key={sub.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFilter('categoryId', cat.id);
+                            setFilter('subCategoryId', sub.id);
+                            navigateTo('category', cat.id);
+                          }}
+                          className="text-[9px] text-white/60 hover:text-gold tracking-wider uppercase border border-white/20 hover:border-gold/50 px-1.5 py-0.5 transition-colors cursor-pointer"
+                        >
+                          {sub.name}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setFilter('categoryId', cat.id);
-                      setFilter('subCategoryId', '');
-                      navigateTo('category', cat.id);
-                    }}
-                    className="absolute inset-0 z-10 cursor-pointer"
-                    aria-label={`Shop ${cat.name}`}
-                  />
-                </motion.div>
+                </motion.button>
               );
             })}
           </div>

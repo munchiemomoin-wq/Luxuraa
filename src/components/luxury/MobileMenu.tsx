@@ -49,7 +49,7 @@ export function MobileMenu() {
             Shop All
           </Button>
 
-          {/* Categories - Men / Women with subcategories */}
+          {/* Categories with Gender subcategories */}
           <div className="pt-4 pb-2">
             {categories.map((cat) => (
               <div key={cat.id}>

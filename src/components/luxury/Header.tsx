@@ -91,63 +91,79 @@ export function Header() {
                 Home
               </button>
 
-              {/* Men / Women dropdowns from categories */}
-              {categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="relative"
-                  onMouseEnter={() => setHoveredCatId(cat.id)}
-                  onMouseLeave={() => setHoveredCatId(null)}
+              {/* Shop mega-menu with Categories × Gender */}
+              <div
+                className="relative"
+                onMouseEnter={() => setHoveredCatId('shop')}
+                onMouseLeave={() => setHoveredCatId(null)}
+              >
+                <button
+                  onClick={() => navigateTo('shop')}
+                  className={`flex items-center gap-1 text-sm tracking-wider uppercase transition-colors hover:text-gold ${
+                    currentView === 'shop' || currentView === 'category' ? 'text-foreground font-medium' : 'text-warm-gray'
+                  }`}
                 >
-                  <button
-                    onClick={() => {
-                      useStore.getState().setFilter('categoryId', cat.id);
-                      navigateTo('category', cat.id);
-                    }}
-                    className={`flex items-center gap-1 text-sm tracking-wider uppercase transition-colors hover:text-gold ${
-                      currentView === 'category' && selectedCategoryId === cat.id ? 'text-foreground font-medium' : 'text-warm-gray'
-                    }`}
-                  >
-                    {cat.name}
-                    {cat.subCategories.length > 0 && <ChevronDown className="h-3 w-3" />}
-                  </button>
+                  Shop
+                  <ChevronDown className="h-3 w-3" />
+                </button>
 
-                  {hoveredCatId === cat.id && cat.subCategories.length > 0 && (
-                    <div className="absolute top-full left-0 pt-2 w-48">
-                      <div className="bg-background border shadow-lg rounded-sm p-4 space-y-2">
-                        <button
-                          onClick={() => {
-                            useStore.getState().setFilter('categoryId', cat.id);
-                            useStore.getState().setFilter('subCategoryId', '');
-                            navigateTo('category', cat.id);
-                            setHoveredCatId(null);
-                          }}
-                          className="block text-xs font-medium tracking-wider uppercase hover:text-gold transition-colors"
-                        >
-                          All {cat.name}
-                        </button>
-                        <div className="border-b border-border my-2" />
-                        {cat.subCategories.map((sub) => (
+                {hoveredCatId === 'shop' && (
+                  <div className="absolute top-full left-0 pt-2" style={{ width: Math.max(categories.length * 130, 500) }}>
+                    <div className="bg-background border shadow-lg rounded-sm p-6">
+                      {/* Gender headers */}
+                      <div className="flex border-b border-border pb-2 mb-3">
+                        <div className="w-24 flex-shrink-0" />
+                        <div className="flex gap-16 flex-1 pl-4">
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Men</span>
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Women</span>
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Unisex</span>
+                        </div>
+                      </div>
+                      {/* Category rows */}
+                      {categories.map((cat) => (
+                        <div key={cat.id} className="flex items-center py-1.5">
                           <button
-                            key={sub.id}
                             onClick={() => {
                               useStore.getState().setFilter('categoryId', cat.id);
-                              useStore.getState().setFilter('subCategoryId', sub.id);
+                              useStore.getState().setFilter('subCategoryId', '');
                               navigateTo('category', cat.id);
                               setHoveredCatId(null);
                             }}
-                            className="block text-xs text-warm-gray hover:text-gold transition-colors tracking-wide"
+                            className="w-24 flex-shrink-0 text-xs font-medium tracking-wider uppercase hover:text-gold transition-colors text-left"
                           >
-                            {sub.name}
+                            {cat.name}
                           </button>
-                        ))}
-                      </div>
+                          <div className="flex gap-16 flex-1 pl-4">
+                            {['Men', 'Women', 'Unisex'].map((gender) => {
+                              const sub = cat.subCategories.find((s) => s.name === gender);
+                              return (
+                                <button
+                                  key={gender}
+                                  onClick={() => {
+                                    if (sub) {
+                                      useStore.getState().setFilter('categoryId', cat.id);
+                                      useStore.getState().setFilter('subCategoryId', sub.id);
+                                      navigateTo('category', cat.id);
+                                      setHoveredCatId(null);
+                                    }
+                                  }}
+                                  className={`text-xs tracking-wide transition-colors ${
+                                    sub ? 'text-warm-gray hover:text-gold' : 'text-warm-gray/30 cursor-default'
+                                  }`}
+                                >
+                                  {cat.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                )}
+              </div>
 
-              {brands.slice(0, 3).map((brand) => (
+              {brands.slice(0, 4).map((brand) => (
                 <button
                   key={brand.id}
                   onClick={() => navigateTo('brand', brand.id)}

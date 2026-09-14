@@ -229,8 +229,8 @@ export function ShopPage() {
                     </div>
                   </FilterSection>
 
-                  {/* Categories (Men/Women) */}
-                  <FilterSection title="Collection">
+                  {/* Categories (Shoes, Bags, etc.) */}
+                  <FilterSection title="Category">
                     <div className="space-y-2">
                       {categories.map((cat) => (
                         <label key={cat.id} className="flex items-center gap-2 cursor-pointer group">
@@ -251,12 +251,12 @@ export function ShopPage() {
                     </div>
                   </FilterSection>
 
-                  {/* Subcategories (Shoes, Bags, etc.) for selected category */}
+                  {/* Gender (Men/Women/Unisex) for selected category */}
                   {filters.categoryId && (() => {
                     const selectedCat = categories.find((c) => c.id === filters.categoryId);
                     if (!selectedCat || selectedCat.subCategories.length === 0) return null;
                     return (
-                      <FilterSection title="Type">
+                      <FilterSection title="Gender">
                         <div className="space-y-2">
                           {selectedCat.subCategories.map((sub) => (
                             <label key={sub.id} className="flex items-center gap-2 cursor-pointer group">
