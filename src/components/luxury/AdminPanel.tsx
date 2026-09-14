@@ -7,7 +7,7 @@ import {
   Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
   Tag, Layers, Settings, ArrowLeft, Check, Upload,
   Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw,
-  Camera, Video, FileImage, XCircle, LogOut
+  Camera, Video, FileImage, XCircle, LogOut, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1146,6 +1146,9 @@ export function AdminPanel() {
                             <div className="flex items-center justify-end gap-0.5">
                               <button onClick={() => handleDuplicateProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Duplicate">
                                 <Copy className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => navigateTo('product', product.id)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="View">
+                                <Eye className="h-3.5 w-3.5" />
                               </button>
                               <button onClick={() => handleEditProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Edit">
                                 <Edit3 className="h-3.5 w-3.5" />
