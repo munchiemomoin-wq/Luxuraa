@@ -78,12 +78,26 @@ export function ProductDetailPage() {
     );
   }
 
-  let images: string[] = [];
+  // Base product images
+  let productImages: string[] = [];
   try {
-    images = JSON.parse(productDetail.images);
+    productImages = JSON.parse(productDetail.images);
   } catch {
-    images = [];
+    productImages = [];
   }
+
+  // Build variant images for the selected color
+  const variantImagesForColor = selectedColor
+    ? productDetail.variants
+        .filter((v) => v.color === selectedColor && v.image)
+        .map((v) => v.image!)
+    : [];
+
+  // When a color is selected and has variant images, show those first then fall back to product images
+  // When no color is selected, show the default product images
+  const images = variantImagesForColor.length > 0
+    ? [...variantImagesForColor, ...productImages]
+    : productImages;
 
   // Video embed URL converter
   const getVideoEmbedUrl = (url: string) => {
@@ -112,6 +126,11 @@ export function ProductDetailPage() {
     if (sizes.length > 0) return v.size === selectedSize;
     return true;
   });
+
+  // Reset image index when color changes (so we start from the variant image)
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [selectedColor]);
 
   const hasDiscount = productDetail.compareAtPrice && productDetail.compareAtPrice > productDetail.price;
   const discount = hasDiscount
@@ -290,19 +309,25 @@ export function ProductDetailPage() {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 text-xs tracking-wider uppercase border transition-all ${
-                        selectedColor === color
-                          ? 'border-gold bg-gold/10 text-gold'
-                          : 'border-border hover:border-gold/50'
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
+                  {colors.map((color) => {
+                    const colorVariantImg = productDetail.variants.find((v) => v.color === color && v.image)?.image;
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`flex items-center gap-2 px-4 py-2 text-xs tracking-wider uppercase border transition-all ${
+                          selectedColor === color
+                            ? 'border-gold bg-gold/10 text-gold'
+                            : 'border-border hover:border-gold/50'
+                        }`}
+                      >
+                        {colorVariantImg && (
+                          <img src={colorVariantImg} alt={color} className="w-5 h-5 rounded-full object-cover border border-border" />
+                        )}
+                        {color}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

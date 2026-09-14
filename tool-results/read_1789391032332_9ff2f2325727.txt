@@ -1,0 +1,1402 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useRef } from 'react';
+     4→import { useStore } from '@/store/useStore';
+     5→import type { Product } from '@/types';
+     6→import {
+     7→  Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
+     8→  Tag, Layers, Settings, ArrowLeft, Check, Upload,
+     9→  Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw,
+    10→  Camera, Video, FileImage, XCircle, LogOut
+    11→} from 'lucide-react';
+    12→import { Button } from '@/components/ui/button';
+    13→import { Input } from '@/components/ui/input';
+    14→import { Textarea } from '@/components/ui/textarea';
+    15→import { Badge } from '@/components/ui/badge';
+    16→import { Separator } from '@/components/ui/separator';
+    17→import { toast } from 'sonner';
+    18→import { motion, AnimatePresence } from 'framer-motion';
+    19→
+    20→interface VariantRow {
+    21→  name: string;
+    22→  color: string;
+    23→  size: string;
+    24→  material: string;
+    25→  price: string;
+    26→  stock: string;
+    27→  image: string;
+    28→}
+    29→
+    30→interface AttributeRow {
+    31→  name: string;
+    32→  value: string;
+    33→}
+    34→
+    35→const ADMIN_PAGE_SIZE = 50;
+    36→
+    37→export function AdminPanel() {
+    38→  const {
+    39→    brands,
+    40→    categories,
+    41→    tags,
+    42→    setBrands,
+    43→    setCategories,
+    44→    setProducts,
+    45→    navigateTo,
+    46→    logoutAdmin,
+    47→  } = useStore();
+    48→
+    49→  // ---- Admin-specific product state (independent of store) ----
+    50→  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+    51→  const [adminTotal, setAdminTotal] = useState(0);
+    52→  const [adminPage, setAdminPage] = useState(1);
+    53→  const [isLoadingAdmin, setIsLoadingAdmin] = useState(false);
+    54→  const [adminSearch, setAdminSearch] = useState('');
+    55→
+    56→  const fetchAdminProducts = useCallback(async (page: number, append: boolean = false, search?: string) => {
+    57→    setIsLoadingAdmin(true);
+    58→    try {
+    59→      const params = new URLSearchParams({
+    60→        page: String(page),
+    61→        limit: String(ADMIN_PAGE_SIZE),
+    62→        sortBy: 'createdAt',
+    63→        sortOrder: 'desc',
+    64→      });
+    65→      if (search) params.set('search', search);
+    66→
+    67→      const res = await fetch(`/api/products?${params.toString()}`);
+    68→      if (res.ok) {
+    69→        const data = await res.json();
+    70→        setAdminProducts((prev) => append ? [...prev, ...data.products] : data.products);
+    71→        setAdminTotal(data.pagination.total);
+    72→      }
+    73→    } catch {
+    74→      // silent
+    75→    } finally {
+    76→      setIsLoadingAdmin(false);
+    77→    }
+    78→  }, []);
+    79→
+    80→  // Initial load + when search changes
+    81→  useEffect(() => {
+    82→    setAdminPage(1);
+    83→    fetchAdminProducts(1, false, adminSearch || undefined);
+    84→  }, [adminSearch, fetchAdminProducts]);
+    85→
+    86→  // Also refresh store products so the front-end stays in sync
+    87→  const refreshStoreProducts = async () => {
+    88→    try {
+    89→      const res = await fetch('/api/products?limit=12&sortBy=createdAt&sortOrder=desc');
+    90→      if (res.ok) {
+    91→        const data = await res.json();
+    92→        setProducts(data.products, data.pagination);
+    93→      }
+    94→    } catch { /* silent */ }
+    95→  };
+    96→
+    97→  const loadMore = () => {
+    98→    const nextPage = adminPage + 1;
+    99→    setAdminPage(nextPage);
+   100→    fetchAdminProducts(nextPage, true, adminSearch || undefined);
+   101→  };
+   102→
+   103→  // Filtered products shown in table
+   104→  const displayedProducts = adminSearch
+   105→    ? adminProducts
+   106→    : adminProducts;
+   107→
+   108→  // ---- Tabs ----
+   109→  const [activeTab, setActiveTab] = useState<'products' | 'brands' | 'categories' | 'tags'>('products');
+   110→
+   111→  // ---- Product form ----
+   112→  const [showForm, setShowForm] = useState(false);
+   113→  const [editingId, setEditingId] = useState<string | null>(null);
+   114→  const [isSubmitting, setIsSubmitting] = useState(false);
+   115→  const [isUploading, setIsUploading] = useState(false);
+   116→  const formRef = useRef<HTMLDivElement>(null);
+   117→  const fileInputRef = useRef<HTMLInputElement>(null);
+   118→
+   119→  const [form, setForm] = useState({
+   120→    name: '',
+   121→    description: '',
+   122→    price: '',
+   123→    compareAtPrice: '',
+   124→    brandId: '',
+   125→    categoryId: '',
+   126→    subCategoryId: '',
+   127→    featured: false,
+   128→    bestseller: false,
+   129→    newArrival: false,
+   130→    images: [] as string[],
+   131→    videoUrl: '',
+   132→    variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }] as VariantRow[],
+   133→    attributes: [{ name: '', value: '' }] as AttributeRow[],
+   134→    selectedTags: [] as string[],
+   135→  });
+   136→
+   137→  const resetForm = () => {
+   138→    setForm({
+   139→      name: '',
+   140→      description: '',
+   141→      price: '',
+   142→      compareAtPrice: '',
+   143→      brandId: '',
+   144→      categoryId: '',
+   145→      subCategoryId: '',
+   146→      featured: false,
+   147→      bestseller: false,
+   148→      newArrival: false,
+   149→      images: [],
+   150→      videoUrl: '',
+   151→      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
+   152→      attributes: [{ name: '', value: '' }],
+   153→      selectedTags: [],
+   154→    });
+   155→    setEditingId(null);
+   156→    setShowForm(false);
+   157→  };
+   158→
+   159→  const keepFormForNext = () => {
+   160→    const currentBrand = form.brandId;
+   161→    const currentCategory = form.categoryId;
+   162→    const currentSubCategory = form.subCategoryId;
+   163→    const currentTags = form.selectedTags;
+   164→    const currentAttributes = form.attributes;
+   165→    setForm({
+   166→      name: '',
+   167→      description: '',
+   168→      price: '',
+   169→      compareAtPrice: '',
+   170→      brandId: currentBrand,
+   171→      categoryId: currentCategory,
+   172→      subCategoryId: currentSubCategory,
+   173→      featured: false,
+   174→      bestseller: false,
+   175→      newArrival: false,
+   176→      images: [],
+   177→      videoUrl: '',
+   178→      variants: [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
+   179→      attributes: currentAttributes.filter(a => a.name.trim()),
+   180→      selectedTags: currentTags,
+   181→    });
+   182→    setEditingId(null);
+   183→    // Keep form open for rapid entry
+   184→  };
+   185→
+   186→  const handleEditProduct = (product: any) => {
+   187→    setForm({
+   188→      name: product.name,
+   189→      description: product.description || '',
+   190→      price: String(product.price),
+   191→      compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+   192→      brandId: product.brandId,
+   193→      categoryId: product.categoryId,
+   194→      subCategoryId: product.subCategoryId || '',
+   195→      featured: product.featured,
+   196→      bestseller: product.bestseller,
+   197→      newArrival: product.newArrival,
+   198→      images: (() => { try { return JSON.parse(product.images); } catch { return []; } })(),
+   199→      videoUrl: (product as any).videoUrl || '',
+   200→      variants: product.variants.length > 0
+   201→        ? product.variants.map((v: any) => ({
+   202→            name: v.name,
+   203→            color: v.color || '',
+   204→            size: v.size || '',
+   205→            material: v.material || '',
+   206→            price: v.price ? String(v.price) : '',
+   207→            stock: String(v.stock),
+   208→            image: v.image || '',
+   209→          }))
+   210→        : [{ name: 'Default', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
+   211→      attributes: product.attributes.length > 0
+   212→        ? product.attributes.map((a: any) => ({ name: a.name, value: a.value }))
+   213→        : [{ name: '', value: '' }],
+   214→      selectedTags: product.tags.map((t: any) => t.tagId),
+   215→    });
+   216→    setEditingId(product.id);
+   217→    setShowForm(true);
+   218→    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+   219→  };
+   220→
+   221→  const handleDuplicateProduct = async (product: any) => {
+   222→    try {
+   223→      const payload = {
+   224→        name: `${product.name} (Copy)`,
+   225→        description: product.description,
+   226→        price: String(product.price),
+   227→        compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+   228→        brandId: product.brandId,
+   229→        categoryId: product.categoryId,
+   230→        subCategoryId: product.subCategoryId,
+   231→        featured: false,
+   232→        bestseller: false,
+   233→        newArrival: false,
+   234→        images: product.images,
+   235→        variants: product.variants.map((v: any) => ({
+   236→          name: v.name,
+   237→          color: v.color || '',
+   238→          size: v.size || '',
+   239→          material: v.material || '',
+   240→          price: v.price ? String(v.price) : '',
+   241→          stock: String(v.stock),
+   242→          image: v.image || '',
+   243→        })),
+   244→        attributes: product.attributes.map((a: any) => ({ name: a.name, value: a.value })),
+   245→        tags: product.tags.map((t: any) => t.tagId),
+   246→      };
+   247→
+   248→      const res = await fetch('/api/admin/products', {
+   249→        method: 'POST',
+   250→        headers: { 'Content-Type': 'application/json' },
+   251→        body: JSON.stringify(payload),
+   252→      });
+   253→      if (res.ok) {
+   254→        toast.success(`Duplicated "${product.name}"`);
+   255→        fetchAdminProducts(1, false, adminSearch || undefined);
+   256→        refreshStoreProducts();
+   257→      } else {
+   258→        toast.error('Failed to duplicate');
+   259→      }
+   260→    } catch {
+   261→      toast.error('Error duplicating product');
+   262→    }
+   263→  };
+   264→
+   265→  const handleDeleteProduct = async (id: string) => {
+   266→    if (!confirm('Are you sure you want to delete this product?')) return;
+   267→    try {
+   268→      const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE' });
+   269→      if (res.ok) {
+   270→        toast.success('Product deleted successfully');
+   271→        fetchAdminProducts(1, false, adminSearch || undefined);
+   272→        refreshStoreProducts();
+   273→      } else {
+   274→        toast.error('Failed to delete product');
+   275→      }
+   276→    } catch {
+   277→      toast.error('Error deleting product');
+   278→    }
+   279→  };
+   280→
+   281→  const handleSubmit = async (andAddAnother: boolean = false) => {
+   282→    if (!form.name.trim()) { toast.error('Product name is required'); return; }
+   283→    if (!form.price) { toast.error('Price is required'); return; }
+   284→    if (!form.brandId) { toast.error('Please select a brand'); return; }
+   285→    if (!form.categoryId) { toast.error('Please select a category'); return; }
+   286→    if (form.images.length === 0) { toast.error('Please upload at least one image'); return; }
+   287→
+   288→    setIsSubmitting(true);
+   289→    try {
+   290→      const payload: any = { ...form, tags: form.selectedTags, videoUrl: form.videoUrl || null };
+   291→      const method = editingId ? 'PUT' : 'POST';
+   292→      if (editingId) payload.id = editingId;
+   293→
+   294→      const res = await fetch('/api/admin/products', {
+   295→        method,
+   296→        headers: { 'Content-Type': 'application/json' },
+   297→        body: JSON.stringify(payload),
+   298→      });
+   299→
+   300→      if (res.ok) {
+   301→        toast.success(editingId ? 'Product updated!' : 'Product created!');
+   302→        if (andAddAnother) {
+   303→          keepFormForNext();
+   304→        } else {
+   305→          resetForm();
+   306→        }
+   307→        fetchAdminProducts(1, false, adminSearch || undefined);
+   308→        refreshStoreProducts();
+   309→      } else {
+   310→        const err = await res.json();
+   311→        toast.error(err.error || 'Failed to save product');
+   312→      }
+   313→    } catch {
+   314→      toast.error('Error saving product');
+   315→    } finally {
+   316→      setIsSubmitting(false);
+   317→    }
+   318→  };
+   319→
+   320→  // ---- Image file upload ----
+   321→  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   322→    const files = e.target.files;
+   323→    if (!files || files.length === 0) return;
+   324→
+   325→    const remaining = 6 - form.images.length;
+   326→    if (remaining <= 0) {
+   327→      toast.error('Maximum 6 images allowed');
+   328→      return;
+   329→    }
+   330→
+   331→    const filesToUpload = Array.from(files).slice(0, remaining);
+   332→
+   333→    setIsUploading(true);
+   334→    try {
+   335→      const formData = new FormData();
+   336→      filesToUpload.forEach((file) => formData.append('files', file));
+   337→
+   338→      const res = await fetch('/api/admin/upload', {
+   339→        method: 'POST',
+   340→        body: formData,
+   341→      });
+   342→
+   343→      const data = await res.json();
+   344→
+   345→      if (res.ok && data.urls && data.urls.length > 0) {
+   346→        setForm((prev) => ({
+   347→          ...prev,
+   348→          images: [...prev.images, ...data.urls],
+   349→        }));
+   350→        toast.success(`Uploaded ${data.urls.length} image(s)`);
+   351→      }
+   352→
+   353→      if (data.errors && data.errors.length > 0) {
+   354→        data.errors.forEach((err: string) => toast.error(err));
+   355→      }
+   356→    } catch {
+   357→      toast.error('Upload failed. Please try again.');
+   358→    } finally {
+   359→      setIsUploading(false);
+   360→      if (fileInputRef.current) fileInputRef.current.value = '';
+   361→    }
+   362→  };
+   363→
+   364→  const removeImage = (index: number) => {
+   365→    setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+   366→  };
+   367→
+   368→  // ---- Variant management ----
+   369→  const addVariant = () => {
+   370→    setForm((prev) => ({
+   371→      ...prev,
+   372→      variants: [...prev.variants, { name: '', color: '', size: '', material: '', price: '', stock: '10', image: '' }],
+   373→    }));
+   374→  };
+   375→  const removeVariant = (index: number) => {
+   376→    setForm((prev) => ({ ...prev, variants: prev.variants.filter((_, i) => i !== index) }));
+   377→  };
+   378→  const updateVariant = (index: number, field: keyof VariantRow, value: string) => {
+   379→    setForm((prev) => ({
+   380→      ...prev,
+   381→      variants: prev.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+   382→    }));
+   383→  };
+   384→
+   385→  // ---- Attribute management ----
+   386→  const addAttribute = () => {
+   387→    setForm((prev) => ({ ...prev, attributes: [...prev.attributes, { name: '', value: '' }] }));
+   388→  };
+   389→  const removeAttribute = (index: number) => {
+   390→    setForm((prev) => ({ ...prev, attributes: prev.attributes.filter((_, i) => i !== index) }));
+   391→  };
+   392→  const updateAttribute = (index: number, field: keyof AttributeRow, value: string) => {
+   393→    setForm((prev) => ({
+   394→      ...prev,
+   395→      attributes: prev.attributes.map((a, i) => (i === index ? { ...a, [field]: value } : a)),
+   396→    }));
+   397→  };
+   398→
+   399→  // ---- Tag toggle ----
+   400→  const toggleTag = (tagId: string) => {
+   401→    setForm((prev) => ({
+   402→      ...prev,
+   403→      selectedTags: prev.selectedTags.includes(tagId)
+   404→        ? prev.selectedTags.filter((t) => t !== tagId)
+   405→        : [...prev.selectedTags, tagId],
+   406→    }));
+   407→  };
+   408→
+   409→  const selectedCategory = categories.find((c) => c.id === form.categoryId);
+   410→  const subCategories = selectedCategory?.subCategories || [];
+   411→
+   412→  // ---- Variant image upload ----
+   413→  const variantFileInputRef = useRef<HTMLInputElement>(null);
+   414→  const [uploadingVariantIdx, setUploadingVariantIdx] = useState<number | null>(null);
+   415→
+   416→  const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantIdx: number) => {
+   417→    const files = e.target.files;
+   418→    if (!files || files.length === 0) return;
+   419→
+   420→    setUploadingVariantIdx(variantIdx);
+   421→    try {
+   422→      const formData = new FormData();
+   423→      formData.append('files', files[0]);
+   424→
+   425→      const res = await fetch('/api/admin/upload', {
+   426→        method: 'POST',
+   427→        body: formData,
+   428→      });
+   429→
+   430→      const data = await res.json();
+   431→      if (res.ok && data.urls && data.urls.length > 0) {
+   432→        updateVariant(variantIdx, 'image', data.urls[0]);
+   433→        toast.success('Variant image uploaded');
+   434→      }
+   435→    } catch {
+   436→      toast.error('Upload failed');
+   437→    } finally {
+   438→      setUploadingVariantIdx(null);
+   439→      if (variantFileInputRef.current) variantFileInputRef.current.value = '';
+   440→    }
+   441→  };
+   442→
+   443→  // ---- SubCategory form ----
+   444→  const [subCatForm, setSubCatForm] = useState({ name: '', categoryId: '', description: '' });
+   445→  const [showSubCatForm, setShowSubCatForm] = useState(false);
+   446→
+   447→  const handleCreateSubCategory = async () => {
+   448→    if (!subCatForm.name.trim() || !subCatForm.categoryId) { toast.error('Name and category are required'); return; }
+   449→    try {
+   450→      const res = await fetch('/api/admin/subcategories', {
+   451→        method: 'POST',
+   452→        headers: { 'Content-Type': 'application/json' },
+   453→        body: JSON.stringify(subCatForm),
+   454→      });
+   455→      if (res.ok) {
+   456→        toast.success('Sub-category created successfully');
+   457→        const newCategories = await (await fetch('/api/categories')).json();
+   458→        setCategories(newCategories);
+   459→        setSubCatForm({ name: '', categoryId: '', description: '' });
+   460→        setShowSubCatForm(false);
+   461→      } else {
+   462→        const err = await res.json();
+   463→        toast.error(err.error || 'Failed to create sub-category');
+   464→      }
+   465→    } catch { toast.error('Error creating sub-category'); }
+   466→  };
+   467→
+   468→  const handleDeleteSubCategory = async (id: string) => {
+   469→    if (!confirm('Delete this sub-category? Products linked to it will lose their sub-category.')) return;
+   470→    try {
+   471→      const res = await fetch(`/api/admin/subcategories?id=${id}`, { method: 'DELETE' });
+   472→      if (res.ok) {
+   473→        toast.success('Sub-category deleted');
+   474→        const newCategories = await (await fetch('/api/categories')).json();
+   475→        setCategories(newCategories);
+   476→      }
+   477→    } catch { toast.error('Error deleting sub-category'); }
+   478→  };
+   479→
+   480→  // ---- Tag form ----
+   481→  const [tagForm, setTagForm] = useState({ name: '' });
+   482→  const [showTagForm, setShowTagForm] = useState(false);
+   483→  const { setTags } = useStore();
+   484→
+   485→  const handleCreateTag = async () => {
+   486→    if (!tagForm.name.trim()) { toast.error('Tag name is required'); return; }
+   487→    try {
+   488→      const res = await fetch('/api/admin/tags', {
+   489→        method: 'POST',
+   490→        headers: { 'Content-Type': 'application/json' },
+   491→        body: JSON.stringify(tagForm),
+   492→      });
+   493→      if (res.ok) {
+   494→        toast.success('Tag created successfully');
+   495→        const newTags = await (await fetch('/api/tags')).json();
+   496→        setTags(newTags);
+   497→        setTagForm({ name: '' });
+   498→        setShowTagForm(false);
+   499→      } else {
+   500→        const err = await res.json();
+   501→        toast.error(err.error || 'Failed to create tag');
+   502→      }
+   503→    } catch { toast.error('Error creating tag'); }
+   504→  };
+   505→
+   506→  const handleDeleteTag = async (id: string) => {
+   507→    if (!confirm('Delete this tag? It will be removed from all products.')) return;
+   508→    try {
+   509→      const res = await fetch(`/api/admin/tags?id=${id}`, { method: 'DELETE' });
+   510→      if (res.ok) {
+   511→        toast.success('Tag deleted');
+   512→        const newTags = await (await fetch('/api/tags')).json();
+   513→        setTags(newTags);
+   514→      }
+   515→    } catch { toast.error('Error deleting tag'); }
+   516→  };
+   517→
+   518→  // ---- Category form ----
+   519→  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', image: '' });
+   520→  const [showCategoryForm, setShowCategoryForm] = useState(false);
+   521→  const [isUploadingCatImage, setIsUploadingCatImage] = useState(false);
+   522→  const catImageInputRef = useRef<HTMLInputElement>(null);
+   523→
+   524→  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   525→    const files = e.target.files;
+   526→    if (!files || files.length === 0) return;
+   527→    setIsUploadingCatImage(true);
+   528→    try {
+   529→      const formData = new FormData();
+   530→      formData.append('files', files[0]);
+   531→      const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+   532→      const data = await res.json();
+   533→      if (res.ok && data.urls && data.urls.length > 0) {
+   534→        setCategoryForm((p) => ({ ...p, image: data.urls[0] }));
+   535→        toast.success('Category image uploaded');
+   536→      }
+   537→    } catch { toast.error('Upload failed'); }
+   538→    finally { setIsUploadingCatImage(false); }
+   539→  };
+   540→
+   541→  const handleDeleteCategory = async (id: string) => {
+   542→    if (!confirm('Delete this category? All sub-categories and linked products will lose their category.')) return;
+   543→    try {
+   544→      const res = await fetch(`/api/admin/categories?id=${id}`, { method: 'DELETE' });
+   545→      if (res.ok) {
+   546→        toast.success('Category deleted');
+   547→        const newCategories = await (await fetch('/api/categories')).json();
+   548→        setCategories(newCategories);
+   549→      }
+   550→    } catch { toast.error('Error deleting category'); }
+   551→  };
+   552→
+   553→  // ---- Brand form ----
+   554→  const [brandForm, setBrandForm] = useState({ name: '', description: '', country: '', foundedYear: '' });
+   555→  const [showBrandForm, setShowBrandForm] = useState(false);
+   556→
+   557→  const handleCreateBrand = async () => {
+   558→    if (!brandForm.name.trim()) { toast.error('Brand name is required'); return; }
+   559→    try {
+   560→      const res = await fetch('/api/admin/brands', {
+   561→        method: 'POST',
+   562→        headers: { 'Content-Type': 'application/json' },
+   563→        body: JSON.stringify(brandForm),
+   564→      });
+   565→      if (res.ok) {
+   566→        toast.success('Brand created successfully');
+   567→        const newBrands = await (await fetch('/api/brands')).json();
+   568→        setBrands(newBrands);
+   569→        setBrandForm({ name: '', description: '', country: '', foundedYear: '' });
+   570→        setShowBrandForm(false);
+   571→      }
+   572→    } catch { toast.error('Error creating brand'); }
+   573→  };
+   574→
+   575→  // ============================================================
+   576→  // RENDER
+   577→  // ============================================================
+   578→  return (
+   579→    <div className="min-h-screen bg-background">
+   580→      {/* Header */}
+   581→      <div className="bg-cream border-b">
+   582→        <div className="max-w-7xl mx-auto px-4 py-8">
+   583→          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+   584→            <div className="flex items-center gap-4">
+   585→              <button onClick={() => navigateTo('home')} className="p-2 hover:text-gold transition-colors">
+   586→                <ArrowLeft className="h-5 w-5" />
+   587→              </button>
+   588→              <div>
+   589→                <h1 className="text-2xl font-light tracking-wide flex items-center gap-3">
+   590→                  <Settings className="h-5 w-5 text-gold" />
+   591→                  Admin Panel
+   592→                </h1>
+   593→                <p className="text-xs text-warm-gray mt-1">Manage products, brands, and categories</p>
+   594→              </div>
+   595→            </div>
+   596→            <div className="flex items-center gap-2">
+   597→              <Button
+   598→                onClick={() => { resetForm(); setShowForm(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+   599→                className="tracking-[0.15em] uppercase text-xs bg-gold text-white hover:bg-gold-dark"
+   600→              >
+   601→                <Plus className="mr-2 h-4 w-4" />
+   602→                Add Product
+   603→              </Button>
+   604→              <Button
+   605→                variant="outline"
+   606→                size="sm"
+   607→                onClick={logoutAdmin}
+   608→                className="tracking-wider uppercase text-xs text-warm-gray hover:text-destructive"
+   609→              >
+   610→                <LogOut className="mr-1.5 h-3.5 w-3.5" />
+   611→                Logout
+   612→              </Button>
+   613→            </div>
+   614→          </div>
+   615→        </div>
+   616→      </div>
+   617→
+   618→      <div className="max-w-7xl mx-auto px-4 py-6">
+   619→        {/* Tabs */}
+   620→        <div className="flex gap-1 border-b mb-6">
+   621→          {([
+   622→            { key: 'products' as const, label: 'Products', icon: Package, count: adminTotal },
+   623→            { key: 'brands' as const, label: 'Brands', icon: Sparkles, count: brands.length },
+   624→            { key: 'categories' as const, label: 'Categories', icon: Layers, count: categories.length },
+   625→            { key: 'tags' as const, label: 'Tags', icon: Tag, count: tags.length },
+   626→          ]).map((tab) => (
+   627→            <button
+   628→              key={tab.key}
+   629→              onClick={() => setActiveTab(tab.key)}
+   630→              className={`flex items-center gap-2 px-4 py-3 text-xs tracking-[0.15em] uppercase border-b-2 transition-colors ${
+   631→                activeTab === tab.key
+   632→                  ? 'border-gold text-foreground font-medium'
+   633→                  : 'border-transparent text-warm-gray hover:text-foreground'
+   634→              }`}
+   635→            >
+   636→              <tab.icon className="h-3.5 w-3.5" />
+   637→              {tab.label}
+   638→              <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5">
+   639→                {tab.count}
+   640→              </Badge>
+   641→            </button>
+   642→          ))}
+   643→        </div>
+   644→
+   645→        {/* ===================== PRODUCTS TAB ===================== */}
+   646→        {activeTab === 'products' && (
+   647→          <div className="space-y-4">
+   648→            {/* Product Form */}
+   649→            <AnimatePresence>
+   650→              {showForm && (
+   651→                <motion.div
+   652→                  ref={formRef}
+   653→                  initial={{ opacity: 0, height: 0 }}
+   654→                  animate={{ opacity: 1, height: 'auto' }}
+   655→                  exit={{ opacity: 0, height: 0 }}
+   656→                  className="border rounded-sm overflow-hidden"
+   657→                >
+   658→                  <div className="bg-cream px-6 py-4 flex items-center justify-between border-b">
+   659→                    <h3 className="text-sm tracking-wider uppercase font-medium">
+   660→                      {editingId ? 'Edit Product' : 'New Product'}
+   661→                    </h3>
+   662→                    <button onClick={resetForm} className="p-1 hover:text-destructive">
+   663→                      <X className="h-4 w-4" />
+   664→                    </button>
+   665→                  </div>
+   666→
+   667→                  <div className="p-6 space-y-6">
+   668→                    {/* Basic Info */}
+   669→                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   670→                      <div className="md:col-span-2">
+   671→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Product Name *</label>
+   672→                        <Input
+   673→                          value={form.name}
+   674→                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+   675→                          placeholder="e.g. Gucci Horsebit 1955 Loafer"
+   676→                          className="h-10"
+   677→                        />
+   678→                      </div>
+   679→                      <div className="md:col-span-2">
+   680→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Description</label>
+   681→                        <Textarea
+   682→                          value={form.description}
+   683→                          onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+   684→                          placeholder="Detailed product description..."
+   685→                          rows={3}
+   686→                        />
+   687→                      </div>
+   688→                      <div>
+   689→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Price (₹) *</label>
+   690→                        <Input
+   691→                          type="number" step="0.01"
+   692→                          value={form.price}
+   693→                          onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+   694→                          placeholder="980"
+   695→                        />
+   696→                      </div>
+   697→                      <div>
+   698→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Compare at Price (₹)</label>
+   699→                        <Input
+   700→                          type="number" step="0.01"
+   701→                          value={form.compareAtPrice}
+   702→                          onChange={(e) => setForm((p) => ({ ...p, compareAtPrice: e.target.value }))}
+   703→                          placeholder="1200 (optional, for sale)"
+   704→                        />
+   705→                      </div>
+   706→                    </div>
+   707→
+   708→                    {/* Brand & Category & Flags */}
+   709→                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   710→                      <div>
+   711→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Brand *</label>
+   712→                        <select
+   713→                          value={form.brandId}
+   714→                          onChange={(e) => setForm((p) => ({ ...p, brandId: e.target.value }))}
+   715→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   716→                        >
+   717→                          <option value="">Select Brand</option>
+   718→                          {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
+   719→                        </select>
+   720→                      </div>
+   721→                      <div>
+   722→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Category *</label>
+   723→                        <select
+   724→                          value={form.categoryId}
+   725→                          onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value, subCategoryId: '' }))}
+   726→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   727→                        >
+   728→                          <option value="">Select Category</option>
+   729→                          {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+   730→                        </select>
+   731→                      </div>
+   732→                      <div>
+   733→                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Sub-Category</label>
+   734→                        <select
+   735→                          value={form.subCategoryId}
+   736→                          onChange={(e) => setForm((p) => ({ ...p, subCategoryId: e.target.value }))}
+   737→                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+   738→                          disabled={!selectedCategory}
+   739→                        >
+   740→                          <option value="">None</option>
+   741→                          {subCategories.map((sc) => (<option key={sc.id} value={sc.id}>{sc.name}</option>))}
+   742→                        </select>
+   743→                      </div>
+   744→                      <div className="flex items-end gap-2 flex-wrap">
+   745→                        {([
+   746→                          { key: 'featured' as const, label: 'Featured' },
+   747→                          { key: 'bestseller' as const, label: 'Bestseller' },
+   748→                          { key: 'newArrival' as const, label: 'New' },
+   749→                        ]).map((flag) => (
+   750→                          <label
+   751→                            key={flag.key}
+   752→                            className={`flex items-center gap-1.5 px-3 py-2 border text-[10px] tracking-wider uppercase cursor-pointer transition-colors ${
+   753→                              form[flag.key] ? 'border-gold bg-gold/10 text-gold' : 'border-border hover:border-gold/50'
+   754→                            }`}
+   755→                          >
+   756→                            <input
+   757→                              type="checkbox"
+   758→                              checked={form[flag.key]}
+   759→                              onChange={(e) => setForm((p) => ({ ...p, [flag.key]: e.target.checked }))}
+   760→                              className="sr-only"
+   761→                            />
+   762→                            {flag.label}
+   763→                          </label>
+   764→                        ))}
+   765→                      </div>
+   766→                    </div>
+   767→
+   768→                    <Separator />
+   769→
+   770→                    {/* Image Upload */}
+   771→                    <div>
+   772→                      <div className="flex items-center justify-between mb-3">
+   773→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   774→                          <Camera className="h-3.5 w-3.5" />
+   775→                          Product Images * ({form.images.length}/6)
+   776→                        </label>
+   777→                      </div>
+   778→
+   779→                      {/* Upload dropzone */}
+   780→                      <div
+   781→                        onClick={() => form.images.length < 6 && fileInputRef.current?.click()}
+   782→                        className={`relative border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-all ${
+   783→                          isUploading
+   784→                            ? 'border-gold/60 bg-gold/5'
+   785→                            : form.images.length >= 6
+   786→                              ? 'border-border bg-muted cursor-not-allowed'
+   787→                              : 'border-border hover:border-gold/50 hover:bg-cream/50'
+   788→                        }`}
+   789→                      >
+   790→                        <input
+   791→                          ref={fileInputRef}
+   792→                          type="file"
+   793→                          accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+   794→                          multiple
+   795→                          onChange={handleFileUpload}
+   796→                          className="hidden"
+   797→                        />
+   798→                        {isUploading ? (
+   799→                          <div className="flex flex-col items-center gap-2">
+   800→                            <div className="h-8 w-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+   801→                            <span className="text-xs text-gold">Uploading...</span>
+   802→                          </div>
+   803→                        ) : form.images.length >= 6 ? (
+   804→                          <div className="flex flex-col items-center gap-2">
+   805→                            <Check className="h-8 w-8 text-gold" />
+   806→                            <span className="text-xs text-warm-gray">6 images uploaded (maximum reached)</span>
+   807→                          </div>
+   808→                        ) : (
+   809→                          <div className="flex flex-col items-center gap-2">
+   810→                            <div className="h-12 w-12 rounded-full bg-cream flex items-center justify-center">
+   811→                              <Upload className="h-5 w-5 text-gold" />
+   812→                            </div>
+   813→                            <div>
+   814→                              <p className="text-sm text-foreground font-medium">Click to upload images</p>
+   815→                              <p className="text-[10px] text-warm-gray mt-1">
+   816→                                JPG, PNG, WebP, GIF or SVG — max 5MB each — up to {6 - form.images.length} more
+   817→                              </p>
+   818→                            </div>
+   819→                          </div>
+   820→                        )}
+   821→                      </div>
+   822→
+   823→                      {/* Image Previews + Empty Slots */}
+   824→                      {form.images.length > 0 && (
+   825→                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-4">
+   826→                          {form.images.map((img, idx) => (
+   827→                            <div key={idx} className="relative aspect-square border bg-secondary rounded-sm overflow-hidden group">
+   828→                              <img src={img} alt="" className="w-full h-full object-cover" />
+   829→                              <button
+   830→                                onClick={() => removeImage(idx)}
+   831→                                className="absolute top-1 right-1 p-1 bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+   832→                              >
+   833→                                <X className="h-3 w-3" />
+   834→                              </button>
+   835→                              <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1.5 py-0.5 rounded-full font-medium">
+   836→                                {idx + 1}
+   837→                              </span>
+   838→                            </div>
+   839→                          ))}
+   840→                          {Array.from({ length: Math.max(0, Math.min(4, 6 - form.images.length)) }).map((_, i) => (
+   841→                            <div
+   842→                              key={`empty-${i}`}
+   843→                              onClick={() => fileInputRef.current?.click()}
+   844→                              className="aspect-square border-2 border-dashed rounded-sm flex flex-col items-center justify-center text-warm-gray/40 cursor-pointer hover:border-gold/40 hover:text-warm-gray/60 transition-colors"
+   845→                            >
+   846→                              <FileImage className="h-5 w-5" />
+   847→                              <span className="text-[9px] mt-1">Add</span>
+   848→                            </div>
+   849→                          ))}
+   850→                        </div>
+   851→                      )}
+   852→                    </div>
+   853→
+   854→                    <Separator />
+   855→
+   856→                    {/* Video URL */}
+   857→                    <div>
+   858→                      <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray mb-3">
+   859→                        <Video className="h-3.5 w-3.5" />
+   860→                        Product Video URL
+   861→                        <span className="text-[10px] normal-case tracking-normal text-warm-gray/60">(optional — YouTube, Vimeo, etc.)</span>
+   862→                      </label>
+   863→                      <div className="relative">
+   864→                        <Input
+   865→                          value={form.videoUrl}
+   866→                          onChange={(e) => setForm((p) => ({ ...p, videoUrl: e.target.value }))}
+   867→                          placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+   868→                          className="h-10 pr-10"
+   869→                        />
+   870→                        {form.videoUrl && (
+   871→                          <button
+   872→                            onClick={() => setForm((p) => ({ ...p, videoUrl: '' }))}
+   873→                            className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-gray hover:text-destructive transition-colors"
+   874→                          >
+   875→                            <XCircle className="h-4 w-4" />
+   876→                          </button>
+   877→                        )}
+   878→                      </div>
+   879→                      {form.videoUrl && (
+   880→                        <p className="text-[10px] text-gold mt-1.5 flex items-center gap-1">
+   881→                          <Check className="h-3 w-3" />
+   882→                          Video link added — will display on product page
+   883→                        </p>
+   884→                      )}
+   885→                    </div>
+   886→
+   887→                    <Separator />
+   888→
+   889→                    {/* Variants */}
+   890→                    <div>
+   891→                      <div className="flex items-center justify-between mb-3">
+   892→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   893→                          <Layers className="h-3.5 w-3.5" />
+   894→                          Variants ({form.variants.length})
+   895→                        </label>
+   896→                        <Button variant="ghost" size="sm" onClick={addVariant} className="text-xs h-7">
+   897→                          <Plus className="h-3 w-3 mr-1" /> Add
+   898→                        </Button>
+   899→                      </div>
+   900→                      <div className="space-y-2">
+   901→                        {form.variants.map((variant, idx) => (
+   902→                          <div key={idx} className="border rounded-sm p-3">
+   903→                            <div className="flex items-center justify-between mb-2">
+   904→                              <span className="text-[10px] tracking-wider uppercase text-warm-gray">Variant {idx + 1}{variant.color ? ` — ${variant.color}` : ''}</span>
+   905→                              {form.variants.length > 1 && (
+   906→                                <button onClick={() => removeVariant(idx)} className="text-warm-gray hover:text-destructive">
+   907→                                  <Trash2 className="h-3 w-3" />
+   908→                                </button>
+   909→                              )}
+   910→                            </div>
+   911→                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+   912→                              <Input value={variant.color} onChange={(e) => updateVariant(idx, 'color', e.target.value)} placeholder="Color" className="h-8 text-xs" />
+   913→                              <Input value={variant.size} onChange={(e) => updateVariant(idx, 'size', e.target.value)} placeholder="Size" className="h-8 text-xs" />
+   914→                              <Input value={variant.material} onChange={(e) => updateVariant(idx, 'material', e.target.value)} placeholder="Material" className="h-8 text-xs" />
+   915→                              <Input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(idx, 'price', e.target.value)} placeholder="Price (₹)" className="h-8 text-xs" />
+   916→                              <Input type="number" value={variant.stock} onChange={(e) => updateVariant(idx, 'stock', e.target.value)} placeholder="Stock" className="h-8 text-xs" />
+   917→                              <Input value={variant.name} onChange={(e) => updateVariant(idx, 'name', e.target.value)} placeholder="Label" className="h-8 text-xs" />
+   918→                            </div>
+   919→                            {/* Variant Image Upload */}
+   920→                            <div className="mt-2 flex items-center gap-3">
+   921→                              <input
+   922→                                ref={variantFileInputRef}
+   923→                                type="file"
+   924→                                accept="image/jpeg,image/png,image/webp"
+   925→                                onChange={(e) => handleVariantImageUpload(e, idx)}
+   926→                                className="hidden"
+   927→                              />
+   928→                              {variant.image ? (
+   929→                                <div className="flex items-center gap-2">
+   930→                                  <div className="w-10 h-10 rounded-sm overflow-hidden border bg-secondary">
+   931→                                    <img src={variant.image} alt="" className="w-full h-full object-cover" />
+   932→                                  </div>
+   933→                                  <span className="text-[10px] text-warm-gray truncate max-w-[120px]">Image set</span>
+   934→                                  <button
+   935→                                    onClick={() => updateVariant(idx, 'image', '')}
+   936→                                    className="text-warm-gray hover:text-destructive"
+   937→                                  >
+   938→                                    <X className="h-3 w-3" />
+   939→                                  </button>
+   940→                                </div>
+   941→                              ) : (
+   942→                                <button
+   943→                                  onClick={() => {
+   944→                                    setUploadingVariantIdx(idx);
+   945→                                    variantFileInputRef.current?.click();
+   946→                                  }}
+   947→                                  disabled={uploadingVariantIdx === idx}
+   948→                                  className="flex items-center gap-1.5 text-[10px] text-warm-gray hover:text-gold transition-colors border border-dashed px-3 py-1.5 rounded-sm"
+   949→                                >
+   950→                                  {uploadingVariantIdx === idx ? (
+   951→                                    <span className="animate-pulse">Uploading...</span>
+   952→                                  ) : (
+   953→                                    <>
+   954→                                      <Camera className="h-3 w-3" />
+   955→                                      Upload color image
+   956→                                    </>
+   957→                                  )}
+   958→                                </button>
+   959→                              )}
+   960→                            </div>
+   961→                          </div>
+   962→                        ))}
+   963→                      </div>
+   964→                    </div>
+   965→
+   966→                    <Separator />
+   967→
+   968→                    {/* Attributes */}
+   969→                    <div>
+   970→                      <div className="flex items-center justify-between mb-3">
+   971→                        <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray">
+   972→                          <Settings className="h-3.5 w-3.5" />
+   973→                          Attributes ({form.attributes.filter(a => a.name).length})
+   974→                        </label>
+   975→                        <Button variant="ghost" size="sm" onClick={addAttribute} className="text-xs h-7">
+   976→                          <Plus className="h-3 w-3 mr-1" /> Add
+   977→                        </Button>
+   978→                      </div>
+   979→                      <div className="space-y-2">
+   980→                        {form.attributes.map((attr, idx) => (
+   981→                          <div key={idx} className="flex items-center gap-2">
+   982→                            <Input value={attr.name} onChange={(e) => updateAttribute(idx, 'name', e.target.value)} placeholder="Name (e.g. Material)" className="h-8 text-xs flex-1" />
+   983→                            <Input value={attr.value} onChange={(e) => updateAttribute(idx, 'value', e.target.value)} placeholder="Value (e.g. Calfskin)" className="h-8 text-xs flex-[2]" />
+   984→                            {form.attributes.length > 1 && (
+   985→                              <button onClick={() => removeAttribute(idx)} className="p-1 text-warm-gray hover:text-destructive flex-shrink-0">
+   986→                                <X className="h-3.5 w-3.5" />
+   987→                              </button>
+   988→                            )}
+   989→                          </div>
+   990→                        ))}
+   991→                      </div>
+   992→                    </div>
+   993→
+   994→                    <Separator />
+   995→
+   996→                    {/* Tags */}
+   997→                    <div>
+   998→                      <label className="flex items-center gap-2 text-xs tracking-wider uppercase text-warm-gray mb-3">
+   999→                        <Tag className="h-3.5 w-3.5" /> Tags ({form.selectedTags.length} selected)
+  1000→                      </label>
+  1001→                      <div className="flex flex-wrap gap-2">
+  1002→                        {tags.map((tag) => (
+  1003→                          <button
+  1004→                            key={tag.id}
+  1005→                            onClick={() => toggleTag(tag.id)}
+  1006→                            className={`text-[10px] tracking-wider uppercase px-3 py-1.5 border transition-colors ${
+  1007→                              form.selectedTags.includes(tag.id)
+  1008→                                ? 'border-gold bg-gold/10 text-gold'
+  1009→                                : 'border-border hover:border-gold/50 hover:text-gold text-warm-gray'
+  1010→                            }`}
+  1011→                          >{tag.name}</button>
+  1012→                        ))}
+  1013→                      </div>
+  1014→                    </div>
+  1015→
+  1016→                    {/* Submit */}
+  1017→                    <div className="flex items-center gap-3 pt-2 flex-wrap">
+  1018→                      <Button
+  1019→                        onClick={() => handleSubmit(false)}
+  1020→                        disabled={isSubmitting}
+  1021→                        className="tracking-[0.15em] uppercase text-xs bg-charcoal hover:bg-charcoal/90 px-6"
+  1022→                      >
+  1023→                        {isSubmitting ? <span className="animate-pulse">Saving...</span> : <><Save className="mr-2 h-4 w-4" />{editingId ? 'Update' : 'Create Product'}</>}
+  1024→                      </Button>
+  1025→                      {!editingId && (
+  1026→                        <Button
+  1027→                          onClick={() => handleSubmit(true)}
+  1028→                          disabled={isSubmitting}
+  1029→                          variant="outline"
+  1030→                          className="tracking-[0.15em] uppercase text-xs px-6 border-gold/40 text-gold hover:bg-gold/10"
+  1031→                        >
+  1032→                          <Plus className="mr-2 h-3.5 w-3.5" />
+  1033→                          Create & Add Another
+  1034→                        </Button>
+  1035→                      )}
+  1036→                      <Button variant="outline" onClick={resetForm} className="tracking-[0.15em] uppercase text-xs">
+  1037→                        Cancel
+  1038→                      </Button>
+  1039→                    </div>
+  1040→                  </div>
+  1041→                </motion.div>
+  1042→              )}
+  1043→            </AnimatePresence>
+  1044→
+  1045→            {/* Search + Stats */}
+  1046→            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+  1047→              <div className="relative flex-1 max-w-sm">
+  1048→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+  1049→                <Input
+  1050→                  value={adminSearch}
+  1051→                  onChange={(e) => setAdminSearch(e.target.value)}
+  1052→                  placeholder="Search products..."
+  1053→                  className="pl-9 h-9 text-xs"
+  1054→                />
+  1055→              </div>
+  1056→              <div className="flex items-center gap-3">
+  1057→                <span className="text-xs text-warm-gray">
+  1058→                  Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{adminTotal}</span> products
+  1059→                </span>
+  1060→                <Button
+  1061→                  variant="ghost"
+  1062→                  size="sm"
+  1063→                  onClick={() => fetchAdminProducts(1, false, adminSearch || undefined)}
+  1064→                  className="h-8 text-xs"
+  1065→                >
+  1066→                  <RefreshCw className="h-3 w-3" />
+  1067→                </Button>
+  1068→              </div>
+  1069→            </div>
+  1070→
+  1071→            {/* Product List */}
+  1072→            {displayedProducts.length === 0 && !isLoadingAdmin ? (
+  1073→              <div className="text-center py-20">
+  1074→                <PackageOpen className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
+  1075→                <p className="text-warm-gray text-sm">No products found.</p>
+  1076→              </div>
+  1077→            ) : (
+  1078→              <div className="border rounded-sm overflow-hidden">
+  1079→                <div className="overflow-x-auto">
+  1080→                  <table className="w-full">
+  1081→                    <thead>
+  1082→                      <tr className="bg-cream border-b">
+  1083→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Product</th>
+  1084→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Brand</th>
+  1085→                        <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden md:table-cell">Category</th>
+  1086→                        <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Price</th>
+  1087→                        <th className="text-center text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden lg:table-cell">Flags</th>
+  1088→                        <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
+  1089→                      </tr>
+  1090→                    </thead>
+  1091→                    <tbody>
+  1092→                      {displayedProducts.map((product) => (
+  1093→                        <tr key={product.id} className="border-b hover:bg-cream/50 transition-colors">
+  1094→                          <td className="px-4 py-3">
+  1095→                            <div className="flex items-center gap-3">
+  1096→                              <div className="w-10 h-10 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
+  1097→                                {(() => { try { const imgs = JSON.parse(product.images); return imgs[0] ? <img src={imgs[0]} alt="" className="w-full h-full object-cover" /> : null; } catch { return null; } })()}
+  1098→                              </div>
+  1099→                              <div className="min-w-0">
+  1100→                                <p className="text-xs font-medium truncate max-w-[200px]">{product.name}</p>
+  1101→                                <p className="text-[10px] text-warm-gray">{product.variants.length} variants</p>
+  1102→                              </div>
+  1103→                            </div>
+  1104→                          </td>
+  1105→                          <td className="px-4 py-3 hidden sm:table-cell">
+  1106→                            <span className="text-xs text-warm-gray">{product.brand.name}</span>
+  1107→                          </td>
+  1108→                          <td className="px-4 py-3 hidden md:table-cell">
+  1109→                            <span className="text-xs text-warm-gray">{product.category.name}</span>
+  1110→                          </td>
+  1111→                          <td className="px-4 py-3 text-right">
+  1112→                            <span className="text-xs font-medium">₹{product.price.toLocaleString('en-IN')}</span>
+  1113→                            {product.compareAtPrice && (
+  1114→                              <span className="text-[10px] text-warm-gray line-through ml-1">₹{product.compareAtPrice.toLocaleString('en-IN')}</span>
+  1115→                            )}
+  1116→                          </td>
+  1117→                          <td className="px-4 py-3 hidden lg:table-cell">
+  1118→                            <div className="flex items-center justify-center gap-1">
+  1119→                              {product.featured && <Badge className="text-[9px] px-1.5 py-0 border-gold/30 bg-gold/10 text-gold">Featured</Badge>}
+  1120→                              {product.bestseller && <Badge className="text-[9px] px-1.5 py-0">Bestseller</Badge>}
+  1121→                              {product.newArrival && <Badge className="text-[9px] px-1.5 py-0 border-charcoal/30">New</Badge>}
+  1122→                            </div>
+  1123→                          </td>
+  1124→                          <td className="px-4 py-3">
+  1125→                            <div className="flex items-center justify-end gap-0.5">
+  1126→                              <button onClick={() => handleDuplicateProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Duplicate">
+  1127→                                <Copy className="h-3.5 w-3.5" />
+  1128→                              </button>
+  1129→                              <button onClick={() => handleEditProduct(product)} className="p-1.5 text-warm-gray hover:text-gold transition-colors" title="Edit">
+  1130→                                <Edit3 className="h-3.5 w-3.5" />
+  1131→                              </button>
+  1132→                              <button onClick={() => handleDeleteProduct(product.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+  1133→                                <Trash2 className="h-3.5 w-3.5" />
+  1134→                              </button>
+  1135→                            </div>
+  1136→                          </td>
+  1137→                        </tr>
+  1138→                      ))}
+  1139→                    </tbody>
+  1140→                  </table>
+  1141→                </div>
+  1142→
+  1143→                {/* Load More */}
+  1144→                {displayedProducts.length < adminTotal && (
+  1145→                  <div className="border-t py-4 text-center">
+  1146→                    <Button
+  1147→                      variant="outline"
+  1148→                      onClick={loadMore}
+  1149→                      disabled={isLoadingAdmin}
+  1150→                      className="tracking-wider uppercase text-xs"
+  1151→                    >
+  1152→                      {isLoadingAdmin ? (
+  1153→                        <span className="animate-pulse">Loading...</span>
+  1154→                      ) : (
+  1155→                        <>
+  1156→                          <ChevronDown className="mr-2 h-4 w-4" />
+  1157→                          Load More ({adminTotal - displayedProducts.length} remaining)
+  1158→                        </>
+  1159→                      )}
+  1160→                    </Button>
+  1161→                  </div>
+  1162→                )}
+  1163→              </div>
+  1164→            )}
+  1165→          </div>
+  1166→        )}
+  1167→
+  1168→        {/* ===================== BRANDS TAB ===================== */}
+  1169→        {activeTab === 'brands' && (
+  1170→          <div className="space-y-4">
+  1171→            <AnimatePresence>
+  1172→              {showBrandForm && (
+  1173→                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+  1174→                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+  1175→                    <h3 className="text-xs tracking-wider uppercase font-medium">New Brand</h3>
+  1176→                    <button onClick={() => setShowBrandForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+  1177→                  </div>
+  1178→                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+  1179→                    <Input value={brandForm.name} onChange={(e) => setBrandForm((p) => ({ ...p, name: e.target.value }))} placeholder="Brand Name *" />
+  1180→                    <Input value={brandForm.country} onChange={(e) => setBrandForm((p) => ({ ...p, country: e.target.value }))} placeholder="Country" />
+  1181→                    <Input value={brandForm.foundedYear} onChange={(e) => setBrandForm((p) => ({ ...p, foundedYear: e.target.value }))} placeholder="Founded Year" />
+  1182→                    <div className="flex gap-2">
+  1183→                      <Button onClick={handleCreateBrand} size="sm" className="flex-1 tracking-wider uppercase text-xs">Create</Button>
+  1184→                      <Button variant="outline" size="sm" onClick={() => setShowBrandForm(false)}>Cancel</Button>
+  1185→                    </div>
+  1186→                  </div>
+  1187→                </motion.div>
+  1188→              )}
+  1189→            </AnimatePresence>
+  1190→            {!showBrandForm && (
+  1191→              <Button variant="outline" onClick={() => setShowBrandForm(true)} className="tracking-wider uppercase text-xs">
+  1192→                <Plus className="mr-2 h-4 w-4" /> Add Brand
+  1193→              </Button>
+  1194→            )}
+  1195→            <div className="border rounded-sm overflow-hidden">
+  1196→              <table className="w-full">
+  1197→                <thead><tr className="bg-cream border-b">
+  1198→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Brand</th>
+  1199→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Country</th>
+  1200→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+  1201→                </tr></thead>
+  1202→                <tbody>{brands.map((brand) => (
+  1203→                  <tr key={brand.id} className="border-b">
+  1204→                    <td className="px-4 py-3">
+  1205→                      <div className="flex items-center gap-3">
+  1206→                        <div className="w-8 h-8 bg-charcoal text-white rounded-full flex items-center justify-center text-xs font-medium">{brand.logo || brand.name[0]}</div>
+  1207→                        <div><p className="text-xs font-medium">{brand.name}</p><p className="text-[10px] text-warm-gray">{brand.foundedYear || ''}</p></div>
+  1208→                      </div>
+  1209→                    </td>
+  1210→                    <td className="px-4 py-3 hidden sm:table-cell"><span className="text-xs text-warm-gray">{brand.country || '-'}</span></td>
+  1211→                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{brand._count.products}</Badge></td>
+  1212→                  </tr>
+  1213→                ))}</tbody>
+  1214→              </table>
+  1215→            </div>
+  1216→          </div>
+  1217→        )}
+  1218→
+  1219→        {/* ===================== CATEGORIES TAB ===================== */}
+  1220→        {activeTab === 'categories' && (
+  1221→          <div className="space-y-6">
+  1222→            {/* Add Category Form */}
+  1223→            <AnimatePresence>
+  1224→              {showCategoryForm && (
+  1225→                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+  1226→                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+  1227→                    <h3 className="text-xs tracking-wider uppercase font-medium">New Category</h3>
+  1228→                    <button onClick={() => { setShowCategoryForm(false); setCategoryForm({ name: '', description: '', image: '' }); }} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+  1229→                  </div>
+  1230→                  <div className="p-4 space-y-3">
+  1231→                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1232→                      <Input value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="Category Name *" />
+  1233→                      <Input value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" />
+  1234→                    </div>
+  1235→                    {/* Category Image Upload */}
+  1236→                    <div>
+  1237→                      <label className="block text-[10px] tracking-wider uppercase text-warm-gray mb-1.5">Category Image</label>
+  1238→                      <input ref={catImageInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCategoryImageUpload} className="hidden" />
+  1239→                      {categoryForm.image ? (
+  1240→                        <div className="flex items-center gap-3">
+  1241→                          <div className="w-16 h-16 rounded-sm overflow-hidden border bg-secondary">
+  1242→                            <img src={categoryForm.image} alt="" className="w-full h-full object-cover" />
+  1243→                          </div>
+  1244→                          <button onClick={() => setCategoryForm((p) => ({ ...p, image: '' }))} className="text-xs text-warm-gray hover:text-destructive">
+  1245→                            <X className="h-3 w-3 mr-1 inline" />Remove
+  1246→                          </button>
+  1247→                        </div>
+  1248→                      ) : (
+  1249→                        <button
+  1250→                          onClick={() => catImageInputRef.current?.click()}
+  1251→                          disabled={isUploadingCatImage}
+  1252→                          className="flex items-center gap-2 text-xs text-warm-gray hover:text-gold border border-dashed px-4 py-2 rounded-sm transition-colors"
+  1253→                        >
+  1254→                          {isUploadingCatImage ? <span className="animate-pulse">Uploading...</span> : <><Upload className="h-3.5 w-3.5" /> Upload Image</>}
+  1255→                        </button>
+  1256→                      )}
+  1257→                    </div>
+  1258→                    <div className="flex gap-2">
+  1259→                      <Button onClick={handleCreateCategory} size="sm" className="tracking-wider uppercase text-xs">Create</Button>
+  1260→                      <Button variant="outline" size="sm" onClick={() => { setShowCategoryForm(false); setCategoryForm({ name: '', description: '', image: '' }); }}>Cancel</Button>
+  1261→                    </div>
+  1262→                  </div>
+  1263→                </motion.div>
+  1264→              )}
+  1265→            </AnimatePresence>
+  1266→            {!showCategoryForm && (
+  1267→              <Button variant="outline" onClick={() => setShowCategoryForm(true)} className="tracking-wider uppercase text-xs">
+  1268→                <Plus className="mr-2 h-4 w-4" /> Add Category
+  1269→              </Button>
+  1270→            )}
+  1271→
+  1272→            {/* Category List */}
+  1273→            <div className="border rounded-sm overflow-hidden">
+  1274→              <table className="w-full">
+  1275→                <thead><tr className="bg-cream border-b">
+  1276→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Category</th>
+  1277→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3 hidden sm:table-cell">Sub-Categories</th>
+  1278→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+  1279→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
+  1280→                </tr></thead>
+  1281→                <tbody>{categories.map((cat) => (
+  1282→                  <tr key={cat.id} className="border-b">
+  1283→                    <td className="px-4 py-3">
+  1284→                      <div className="flex items-center gap-3">
+  1285→                        {cat.image && <div className="w-8 h-8 rounded-sm overflow-hidden bg-secondary flex-shrink-0"><img src={cat.image} alt="" className="w-full h-full object-cover" /></div>}
+  1286→                        <div>
+  1287→                          <p className="text-xs font-medium">{cat.name}</p>
+  1288→                          <p className="text-[10px] text-warm-gray">{cat.description || ''}</p>
+  1289→                        </div>
+  1290→                      </div>
+  1291→                    </td>
+  1292→                    <td className="px-4 py-3 hidden sm:table-cell">
+  1293→                      <div className="flex flex-wrap gap-1">
+  1294→                        {cat.subCategories.map((sc) => (
+  1295→                          <span key={sc.id} className="inline-flex items-center gap-1 text-[10px] bg-secondary px-2 py-0.5 rounded-sm">
+  1296→                            {sc.name}
+  1297→                            <button onClick={() => handleDeleteSubCategory(sc.id)} className="text-warm-gray hover:text-destructive ml-0.5"><X className="h-2.5 w-2.5" /></button>
+  1298→                          </span>
+  1299→                        ))}
+  1300→                        {cat.subCategories.length === 0 && <span className="text-[10px] text-warm-gray">-</span>}
+  1301→                      </div>
+  1302→                    </td>
+  1303→                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{cat._count.products}</Badge></td>
+  1304→                    <td className="px-4 py-3 text-right">
+  1305→                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+  1306→                        <Trash2 className="h-3.5 w-3.5" />
+  1307→                      </button>
+  1308→                    </td>
+  1309→                  </tr>
+  1310→                ))}</tbody>
+  1311→              </table>
+  1312→            </div>
+  1313→
+  1314→            <Separator />
+  1315→
+  1316→            {/* Sub-Category Management */}
+  1317→            <div>
+  1318→              <h3 className="text-sm tracking-wider uppercase font-medium mb-3 flex items-center gap-2">
+  1319→                <Layers className="h-4 w-4 text-gold" /> Sub-Categories
+  1320→              </h3>
+  1321→              <AnimatePresence>
+  1322→                {showSubCatForm && (
+  1323→                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden mb-3">
+  1324→                    <div className="bg-cream px-4 py-2 border-b flex items-center justify-between">
+  1325→                      <span className="text-[10px] tracking-wider uppercase font-medium">New Sub-Category</span>
+  1326→                      <button onClick={() => setShowSubCatForm(false)} className="p-1 hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+  1327→                    </div>
+  1328→                    <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+  1329→                      <select value={subCatForm.categoryId} onChange={(e) => setSubCatForm((p) => ({ ...p, categoryId: e.target.value }))} className="h-9 px-3 text-xs border bg-background rounded-sm">
+  1330→                        <option value="">Parent Category *</option>
+  1331→                        {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+  1332→                      </select>
+  1333→                      <Input value={subCatForm.name} onChange={(e) => setSubCatForm((p) => ({ ...p, name: e.target.value }))} placeholder="Sub-Category Name *" className="h-9 text-xs" />
+  1334→                      <div className="flex gap-2">
+  1335→                        <Button onClick={handleCreateSubCategory} size="sm" className="flex-1 tracking-wider uppercase text-[10px]">Create</Button>
+  1336→                        <Button variant="outline" size="sm" onClick={() => setShowSubCatForm(false)} className="text-[10px]">Cancel</Button>
+  1337→                      </div>
+  1338→                    </div>
+  1339→                  </motion.div>
+  1340→                )}
+  1341→              </AnimatePresence>
+  1342→              {!showSubCatForm && (
+  1343→                <Button variant="outline" size="sm" onClick={() => setShowSubCatForm(true)} className="tracking-wider uppercase text-[10px]">
+  1344→                  <Plus className="mr-1.5 h-3 w-3" /> Add Sub-Category
+  1345→                </Button>
+  1346→              )}
+  1347→            </div>
+  1348→          </div>
+  1349→        )}
+  1350→
+  1351→        {/* ===================== TAGS TAB ===================== */}
+  1352→        {activeTab === 'tags' && (
+  1353→          <div className="space-y-4">
+  1354→            <AnimatePresence>
+  1355→              {showTagForm && (
+  1356→                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border rounded-sm overflow-hidden">
+  1357→                  <div className="bg-cream px-6 py-3 border-b flex items-center justify-between">
+  1358→                    <h3 className="text-xs tracking-wider uppercase font-medium">New Tag</h3>
+  1359→                    <button onClick={() => setShowTagForm(false)} className="p-1 hover:text-destructive"><X className="h-4 w-4" /></button>
+  1360→                  </div>
+  1361→                  <div className="p-4 flex items-center gap-3">
+  1362→                    <Input value={tagForm.name} onChange={(e) => setTagForm({ name: e.target.value })} placeholder="Tag Name *" className="h-9 text-xs flex-1" />
+  1363→                    <Button onClick={handleCreateTag} size="sm" className="tracking-wider uppercase text-xs">Create</Button>
+  1364→                    <Button variant="outline" size="sm" onClick={() => setShowTagForm(false)}>Cancel</Button>
+  1365→                  </div>
+  1366→                </motion.div>
+  1367→              )}
+  1368→            </AnimatePresence>
+  1369→            {!showTagForm && (
+  1370→              <Button variant="outline" onClick={() => setShowTagForm(true)} className="tracking-wider uppercase text-xs">
+  1371→                <Plus className="mr-2 h-4 w-4" /> Add Tag
+  1372→              </Button>
+  1373→            )}
+  1374→            <div className="border rounded-sm overflow-hidden">
+  1375→              <table className="w-full">
+  1376→                <thead><tr className="bg-cream border-b">
+  1377→                  <th className="text-left text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Tag</th>
+  1378→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Products</th>
+  1379→                  <th className="text-right text-[10px] tracking-wider uppercase text-warm-gray px-4 py-3">Actions</th>
+  1380→                </tr></thead>
+  1381→                <tbody>{tags.map((tag) => (
+  1382→                  <tr key={tag.id} className="border-b hover:bg-cream/50 transition-colors">
+  1383→                    <td className="px-4 py-3">
+  1384→                      <Badge variant="secondary" className="text-xs">{tag.name}</Badge>
+  1385→                    </td>
+  1386→                    <td className="px-4 py-3 text-right"><Badge variant="secondary" className="text-[10px]">{tag._count.products}</Badge></td>
+  1387→                    <td className="px-4 py-3 text-right">
+  1388→                      <button onClick={() => handleDeleteTag(tag.id)} className="p-1.5 text-warm-gray hover:text-destructive transition-colors" title="Delete">
+  1389→                        <Trash2 className="h-3.5 w-3.5" />
+  1390→                      </button>
+  1391→                    </td>
+  1392→                  </tr>
+  1393→                ))}</tbody>
+  1394→              </table>
+  1395→            </div>
+  1396→          </div>
+  1397→        )}
+  1398→      </div>
+  1399→    </div>
+  1400→  );
+  1401→}
+  1402→

@@ -93,7 +93,10 @@ export async function PUT(request: NextRequest) {
 
     const { variants, attributes, tags, images, videoUrl, selectedTags, ...productFields } = updateData;
 
-    // Update product fields
+    // Resolve tags: support both `tags` (array of IDs) and `selectedTags` (array of IDs)
+    const tagIds: string[] = selectedTags || tags || [];
+
+    // Update product fields + nested relations in a single transaction
     const updated = await db.product.update({
       where: { id },
       data: {
@@ -109,6 +112,39 @@ export async function PUT(request: NextRequest) {
         newArrival: productFields.newArrival,
         images: typeof images === 'string' ? images : JSON.stringify(images || []),
         videoUrl: videoUrl || null,
+        // Replace all variants (delete old + create new)
+        variants: variants
+          ? {
+              deleteMany: {},
+              create: variants.map((v: any) => ({
+                name: v.name || '',
+                sku: v.sku || null,
+                color: v.color || null,
+                size: v.size || null,
+                material: v.material || null,
+                price: v.price ? parseFloat(v.price) : null,
+                stock: parseInt(v.stock || '0'),
+                image: v.image || null,
+              })),
+            }
+          : undefined,
+        // Replace all attributes
+        attributes: attributes
+          ? {
+              deleteMany: {},
+              create: attributes.map((a: any) => ({
+                name: a.name,
+                value: a.value,
+              })),
+            }
+          : undefined,
+        // Replace all tag associations
+        tags: tagIds.length > 0
+          ? {
+              deleteMany: {},
+              create: tagIds.map((tagId: string) => ({ tagId })),
+            }
+          : { deleteMany: {} },
       },
       include: {
         brand: { select: { id: true, name: true, slug: true, logo: true } },
