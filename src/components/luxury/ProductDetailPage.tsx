@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2, Play, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingBag, Minus, Plus, ChevronRight, Check, Share2, Play, MessageCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -102,8 +102,8 @@ export function ProductDetailPage() {
   // Video embed URL converter
   const getVideoEmbedUrl = (url: string) => {
     if (!url) return null;
-    // YouTube watch URL
-    let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    // YouTube: watch, short link, embed, shorts, /v/, /watch/
+    let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/v\/|youtube\.com\/watch\/)([a-zA-Z0-9_-]{11})/);
     if (match) return `https://www.youtube.com/embed/${match[1]}`;
     // Vimeo
     match = url.match(/vimeo\.com\/(\d+)/);
@@ -227,21 +227,36 @@ export function ProductDetailPage() {
             )}
 
             {/* Video Section */}
-            {videoEmbedUrl && (
+            {(videoEmbedUrl || productDetail.videoUrl) && (
               <div className="mt-4">
-                <div className="relative aspect-video rounded-sm overflow-hidden border border-border bg-black">
-                  <iframe
-                    src={videoEmbedUrl}
-                    title={`${productDetail.name} video`}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-                <p className="text-[10px] text-warm-gray mt-2 flex items-center gap-1.5">
-                  <Play className="h-3 w-3 text-gold" />
-                  Product Video
-                </p>
+                {videoEmbedUrl ? (
+                  <>
+                    <div className="relative aspect-video rounded-sm overflow-hidden border border-border bg-black">
+                      <iframe
+                        src={videoEmbedUrl}
+                        title={`${productDetail.name} video`}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                    <p className="text-[10px] text-warm-gray mt-2 flex items-center gap-1.5">
+                      <Play className="h-3 w-3 text-gold" />
+                      Product Video
+                    </p>
+                  </>
+                ) : (
+                  <a
+                    href={productDetail.videoUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-3 border border-gold/30 rounded-sm hover:border-gold hover:bg-gold/5 transition-colors group"
+                  >
+                    <Play className="h-4 w-4 text-gold" />
+                    <span className="text-sm text-warm-gray group-hover:text-gold transition-colors">Watch Product Video</span>
+                    <ExternalLink className="h-3 w-3 text-warm-gray/50 ml-auto" />
+                  </a>
+                )}
               </div>
             )}
           </div>

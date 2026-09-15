@@ -7,7 +7,7 @@ import {
   Plus, Trash2, Edit3, Save, X, Package, ChevronDown, ChevronUp,
   Tag, Layers, Settings, ArrowLeft, Check, Upload,
   Sparkles, PackageOpen, Copy, Search, ChevronLeft, RefreshCw,
-  Camera, Video, FileImage, XCircle, LogOut, Eye
+  Camera, Video, FileImage, XCircle, LogOut, Eye, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -903,7 +903,7 @@ export function AdminPanel() {
                         <Input
                           value={form.videoUrl}
                           onChange={(e) => setForm((p) => ({ ...p, videoUrl: e.target.value }))}
-                          placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                          placeholder="https://youtube.com/watch?v=... / shorts / youtu.be / vimeo"
                           className="h-10 pr-10"
                         />
                         {form.videoUrl && (
@@ -915,12 +915,39 @@ export function AdminPanel() {
                           </button>
                         )}
                       </div>
-                      {form.videoUrl && (
-                        <p className="text-[10px] text-gold mt-1.5 flex items-center gap-1">
-                          <Check className="h-3 w-3" />
-                          Video link added — will display on product page
-                        </p>
-                      )}
+                      {form.videoUrl && (() => {
+                        const getEmbedUrl = (url: string) => {
+                          let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/v\/|youtube\.com\/watch\/)([a-zA-Z0-9_-]{11})/);
+                          if (match) return `https://www.youtube.com/embed/${match[1]}`;
+                          match = url.match(/vimeo\.com\/(\d+)/);
+                          if (match) return `https://player.vimeo.com/video/${match[1]}`;
+                          if (url.includes('embed') || url.includes('player')) return url;
+                          return null;
+                        };
+                        const embedUrl = getEmbedUrl(form.videoUrl);
+                        return embedUrl ? (
+                          <div className="mt-2">
+                            <p className="text-[10px] text-gold mb-1.5 flex items-center gap-1">
+                              <Check className="h-3 w-3" />
+                              Video preview
+                            </p>
+                            <div className="relative aspect-video rounded overflow-hidden border border-border bg-black">
+                              <iframe
+                                src={embedUrl}
+                                title="Video preview"
+                                className="absolute inset-0 w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-amber-500 mt-1.5 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            URL not recognized — supported: YouTube (watch/shorts/share), Vimeo
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     <Separator />
