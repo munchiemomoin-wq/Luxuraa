@@ -75,6 +75,7 @@ export interface Product {
   category: { id: string; name: string; slug: string };
   subCategoryId: string | null;
   subCategory: { id: string; name: string; slug: string } | null;
+  gender: string | null;
   featured: boolean;
   bestseller: boolean;
   newArrival: boolean;

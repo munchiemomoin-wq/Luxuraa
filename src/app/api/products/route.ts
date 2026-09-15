@@ -20,12 +20,14 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const priceMin = searchParams.get('priceMin');
     const priceMax = searchParams.get('priceMax');
+    const gender = searchParams.get('gender');
 
     const where: Prisma.ProductWhereInput = {};
 
     if (brandId) where.brandId = brandId;
     if (categoryId) where.categoryId = categoryId;
     if (subCategoryId) where.subCategoryId = subCategoryId;
+    if (gender) where.gender = gender;
     if (featured === 'true') where.featured = true;
     if (bestseller === 'true') where.bestseller = true;
     if (newArrival === 'true') where.newArrival = true;

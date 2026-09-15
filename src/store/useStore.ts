@@ -29,6 +29,7 @@ interface StoreState {
     categoryId: string | null;
     subCategoryId: string | null;
     tag: string | null;
+    gender: string | null;
     priceMin: string | null;
     priceMax: string | null;
     sortBy: string;
@@ -89,6 +90,7 @@ const defaultFilters = {
   categoryId: null,
   subCategoryId: null,
   tag: null,
+  gender: null,
   priceMin: null,
   priceMax: null,
   sortBy: 'createdAt',

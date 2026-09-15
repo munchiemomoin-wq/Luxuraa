@@ -72,6 +72,7 @@ export default function Page() {
         if (filters.categoryId) params.set('categoryId', filters.categoryId);
         if (filters.subCategoryId) params.set('subCategoryId', filters.subCategoryId);
         if (filters.tag) params.set('tag', filters.tag);
+        if ((filters as any).gender) params.set('gender', (filters as any).gender);
         if (filters.priceMin) params.set('priceMin', filters.priceMin);
         if (filters.priceMax) params.set('priceMax', filters.priceMax);
         if (filters.sortBy) params.set('sortBy', filters.sortBy);

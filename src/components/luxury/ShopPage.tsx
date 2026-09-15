@@ -251,12 +251,12 @@ export function ShopPage() {
                     </div>
                   </FilterSection>
 
-                  {/* Gender (Men/Women/Unisex) for selected category */}
+                  {/* Subcategory (Sneakers, Loafers, Totes, etc.) */}
                   {filters.categoryId && (() => {
                     const selectedCat = categories.find((c) => c.id === filters.categoryId);
                     if (!selectedCat || selectedCat.subCategories.length === 0) return null;
                     return (
-                      <FilterSection title="Gender">
+                      <FilterSection title="Type">
                         <div className="space-y-2">
                           {selectedCat.subCategories.map((sub) => (
                             <label key={sub.id} className="flex items-center gap-2 cursor-pointer group">
@@ -277,6 +277,27 @@ export function ShopPage() {
                       </FilterSection>
                     );
                   })()}
+
+                  {/* Gender (Men/Women/Unisex) */}
+                  <FilterSection title="Gender">
+                    <div className="space-y-2">
+                      {['men', 'women', 'unisex'].map((g) => (
+                        <label key={g} className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={filters.gender === g}
+                            onChange={(e) => {
+                              setFilter('gender' as any, e.target.checked ? g : null);
+                            }}
+                            className="rounded-sm border-border accent-gold"
+                          />
+                          <span className="text-xs tracking-wider uppercase group-hover:text-gold transition-colors">
+                            {g.charAt(0).toUpperCase() + g.slice(1)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </FilterSection>
 
                   {/* Price Range */}
                   <FilterSection title="Price Range">

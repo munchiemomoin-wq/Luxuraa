@@ -124,6 +124,7 @@ export function AdminPanel() {
     brandId: '',
     categoryId: '',
     subCategoryId: '',
+    gender: '',
     featured: false,
     bestseller: false,
     newArrival: false,
@@ -143,6 +144,7 @@ export function AdminPanel() {
       brandId: '',
       categoryId: '',
       subCategoryId: '',
+      gender: '',
       featured: false,
       bestseller: false,
       newArrival: false,
@@ -162,6 +164,7 @@ export function AdminPanel() {
     const currentSubCategory = form.subCategoryId;
     const currentTags = form.selectedTags;
     const currentAttributes = form.attributes;
+    const currentGender = form.gender;
     setForm({
       name: '',
       description: '',
@@ -170,6 +173,7 @@ export function AdminPanel() {
       brandId: currentBrand,
       categoryId: currentCategory,
       subCategoryId: currentSubCategory,
+      gender: currentGender,
       featured: false,
       bestseller: false,
       newArrival: false,
@@ -192,6 +196,7 @@ export function AdminPanel() {
       brandId: product.brandId,
       categoryId: product.categoryId,
       subCategoryId: product.subCategoryId || '',
+      gender: product.gender || '',
       featured: product.featured,
       bestseller: product.bestseller,
       newArrival: product.newArrival,
@@ -760,6 +765,19 @@ export function AdminPanel() {
                         >
                           <option value="">None</option>
                           {subCategories.map((sc) => (<option key={sc.id} value={sc.id}>{sc.name}</option>))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs tracking-wider uppercase text-warm-gray mb-1.5">Gender</label>
+                        <select
+                          value={form.gender}
+                          onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
+                          className="w-full h-10 px-3 text-sm border bg-background rounded-sm"
+                        >
+                          <option value="">Select</option>
+                          <option value="men">Men</option>
+                          <option value="women">Women</option>
+                          <option value="unisex">Unisex</option>
                         </select>
                       </div>
                       <div className="flex items-end gap-2 flex-wrap">

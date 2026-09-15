@@ -69,6 +69,7 @@ model Product {
   category      Category          @relation(fields: [categoryId], references: [id])
   subCategoryId String?
   subCategory   SubCategory?      @relation(fields: [subCategoryId], references: [id])
+  gender        String?           // "men", "women", "unisex"
   featured      Boolean           @default(false)
   bestseller    Boolean           @default(false)
   newArrival    Boolean           @default(false)
@@ -83,6 +84,7 @@ model Product {
   @@index([brandId])
   @@index([categoryId])
   @@index([subCategoryId])
+  @@index([gender])
   @@index([featured])
 }
 

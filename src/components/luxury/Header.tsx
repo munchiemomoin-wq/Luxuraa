@@ -108,20 +108,10 @@ export function Header() {
                 </button>
 
                 {hoveredCatId === 'shop' && (
-                  <div className="absolute top-full left-0 pt-2" style={{ width: Math.max(categories.length * 130, 500) }}>
-                    <div className="bg-background border shadow-lg rounded-sm p-6">
-                      {/* Gender headers */}
-                      <div className="flex border-b border-border pb-2 mb-3">
-                        <div className="w-24 flex-shrink-0" />
-                        <div className="flex gap-16 flex-1 pl-4">
-                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Men</span>
-                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Women</span>
-                          <span className="text-[10px] tracking-[0.2em] uppercase text-gold font-medium">Unisex</span>
-                        </div>
-                      </div>
-                      {/* Category rows */}
+                  <div className="absolute top-full left-0 pt-2 w-[600px]">
+                    <div className="bg-background border shadow-lg rounded-sm p-6 grid grid-cols-3 gap-x-8 gap-y-1">
                       {categories.map((cat) => (
-                        <div key={cat.id} className="flex items-center py-1.5">
+                        <div key={cat.id}>
                           <button
                             onClick={() => {
                               useStore.getState().setFilter('categoryId', cat.id);
@@ -129,32 +119,25 @@ export function Header() {
                               navigateTo('category', cat.id);
                               setHoveredCatId(null);
                             }}
-                            className="w-24 flex-shrink-0 text-xs font-medium tracking-wider uppercase hover:text-gold transition-colors text-left"
+                            className="text-sm font-medium tracking-wider uppercase hover:text-gold transition-colors mb-2 block"
                           >
                             {cat.name}
                           </button>
-                          <div className="flex gap-16 flex-1 pl-4">
-                            {['Men', 'Women', 'Unisex'].map((gender) => {
-                              const sub = cat.subCategories.find((s) => s.name === gender);
-                              return (
-                                <button
-                                  key={gender}
-                                  onClick={() => {
-                                    if (sub) {
-                                      useStore.getState().setFilter('categoryId', cat.id);
-                                      useStore.getState().setFilter('subCategoryId', sub.id);
-                                      navigateTo('category', cat.id);
-                                      setHoveredCatId(null);
-                                    }
-                                  }}
-                                  className={`text-xs tracking-wide transition-colors ${
-                                    sub ? 'text-warm-gray hover:text-gold' : 'text-warm-gray/30 cursor-default'
-                                  }`}
-                                >
-                                  {cat.name}
-                                </button>
-                              );
-                            })}
+                          <div className="space-y-1">
+                            {cat.subCategories.map((sub) => (
+                              <button
+                                key={sub.id}
+                                onClick={() => {
+                                  useStore.getState().setFilter('categoryId', cat.id);
+                                  useStore.getState().setFilter('subCategoryId', sub.id);
+                                  navigateTo('category', cat.id);
+                                  setHoveredCatId(null);
+                                }}
+                                className="block text-xs text-warm-gray hover:text-gold transition-colors tracking-wide"
+                              >
+                                {sub.name}
+                              </button>
+                            ))}
                           </div>
                         </div>
                       ))}
